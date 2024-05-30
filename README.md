@@ -21,7 +21,7 @@ CashFlow is a mobile application designed to help users track their daily expens
 
 ### Installation
 
-1. Clone the repository: `git clone https://github.com/yourusername/CashFlow.git`
+1. Clone the repository: `git clone https://github.com/HoloDanger/CashFlow.git`
 2. Navigate into the project directory: `cd CashFlow`
 3. Install dependencies: `flutter pub get`
 4. Run the app: `flutter run`
