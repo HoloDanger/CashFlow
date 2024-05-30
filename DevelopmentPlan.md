@@ -26,10 +26,10 @@ Outline the objectives and goals of the project.
 ## Set Up Development Environment
 
 Step 2: Set Up Development Environment (setup_guide.md)
-Create a file named setup_guide.md.
-Install Flutter SDK and Dart.
-Set up Android Studio or VS Code with Flutter plugins.
-Verify the installation by running a sample Flutter app.
+- Create a file named setup_guide.md.
+- Install Flutter SDK and Dart.
+- Set up Android Studio or VS Code with Flutter plugins.
+- Verify the installation by running a sample Flutter app.
 
 ## Plan App Features and UI
 
