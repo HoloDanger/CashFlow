@@ -8,13 +8,22 @@ Easily input your income and expenses across various categories. Keep a detailed
 
 Set monthly or weekly budgets and track your spending against these budgets. Receive notifications when you are close to exceeding your budget limits.
 
+   - Scenario: Sarah sets a monthly budget of $100 for dining out to save more.
+   - Notifications: Receive alerts when 80% of the dining out budget is spent.
+
 ## Reports
 
 Visualize your transaction history with beautiful and intuitive graphs. Analyze your spending patterns over time and identify areas where you can save more.
 
+   - Graph types: Pie charts, bar graphs, line charts.
+   - Insight: Identify peak spending months to adjust budgets accordingly.
+
 ## Export
 
 Export your transaction history to CSV for further analysis. Easily share your financial data with accountants or import it into other financial tools.
+
+   - CSV structure: Date, Amount, Category, Description.
+   - Customization: Choose specific date ranges for export.
 
 # Objectives and Goals
 
