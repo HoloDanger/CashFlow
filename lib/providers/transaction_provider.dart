@@ -23,4 +23,10 @@ class TransactionProvider with ChangeNotifier {
     _transactions = await _databaseService.getTransactions();
     notifyListeners();
   }
+
+  // Delete a transaction
+  Future<void> deleteTransaction(String id) async {
+    _transactions.removeWhere((txn) => txn.id == id);
+    notifyListeners();
+  }
 }
