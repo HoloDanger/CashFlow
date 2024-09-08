@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:money_tracker/providers/transaction_provider.dart';
+import 'package:intl/intl.dart';
 import 'add_transaction_screen.dart';
 import 'settings_screen.dart';
 
@@ -9,9 +10,16 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final DateFormat dateFormatter = DateFormat('yyyy-MM-dd HH:mm:ss');
+    final NumberFormat currencyFormatter = NumberFormat.currency(
+      locale: 'en_PH',
+      symbol: '₱',
+      decimalDigits: 2,
+    );
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('CashFlow'),
+        title: const Text('CashFlow', style: TextStyle(color: Colors.white)),
         backgroundColor: Colors.teal,
         actions: <Widget>[
           IconButton(
@@ -49,6 +57,11 @@ class HomeScreen extends StatelessWidget {
                     itemBuilder: (ctx, index) {
                       final transaction =
                           transactionProvider.transactions[index];
+                      final formattedDate =
+                          dateFormatter.format(transaction.date);
+                      final formattedAmount =
+                          currencyFormatter.format(transaction.amount);
+                      currencyFormatter.format(transaction.amount);
                       return Card(
                         margin: const EdgeInsets.symmetric(vertical: 8.0),
                         elevation: 5,
@@ -60,7 +73,7 @@ class HomeScreen extends StatelessWidget {
                             ),
                           ),
                           subtitle: Text(
-                            '${transaction.amount} - ${transaction.date}',
+                            '$formattedAmount - $formattedDate',
                             style: const TextStyle(
                               color: Colors.grey,
                             ),

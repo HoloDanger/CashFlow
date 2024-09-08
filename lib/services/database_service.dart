@@ -47,4 +47,9 @@ class DatabaseService {
       return my_model.Transaction.fromMap(maps[i]);
     });
   }
+
+  Future<void> deleteTransaction(String id) async {
+    final db = await database;
+    await db.delete('transactions', where: 'id = ?', whereArgs: [id]);
+  }
 }
