@@ -1,46 +1,117 @@
-# Main Features
+# Project Requirements
 
-## Transaction Logging
+## Introduction
 
-Easily input your income and expenses across various categories. Keep a detailed record of each transaction including date, amount, and category.
+This document outlines the core requirements and features for the CashFlow application. The purpose of this guide is to detail the functionalities that the application must support and the expectations for each future. These requirements will guide the development process and ensure that all critical aspects of the application are addressed.
 
-## Budgeting
+## Features
 
-Set monthly or weekly budgets and track your spending against these budgets. Receive notifications when you are close to exceeding your budget limits.
+### Transaction Logging
 
-   - Scenario: Sarah sets a monthly budget of $100 for dining out to save more.
-   - Notifications: Receive alerts when 80% of the dining out budget is spent.
+- **Description**: Allows users to record their income and expenses. Users can categorize transactions and view them in a list.
+- **Detailed Requirements**:
+  - **Types of Transactions**:
+    - Users can log **income**, **one-time expenses**, and **recurring expenses**.
+    - Recurring expenses can be set with a frequency of **daily**, **weekly**, or **monthly**.
+  - **Fields Required**:
+    - **Date**: Must be a valid date format (e.g., YYYY-MM-DD).
+    - **Amount**: Numeric value with up to two decimal places.
+    - **Category**: Dropdown with predefined categories (e.g., Groceries, Utilities).
+    - **Description**: Optional text field with a maximum of 255 characters.
+  - **Validation Rules**:
+    - Amount must be greater than 0.
+    - Date must be a valid date in the past or present (no future dates).
+  - **User Permissions**:
+    - **Regular Users**: Can add, edit, or delete their own transactions.
+    - **Admins**: Can view, add, edit, or delete transactions for any user.
+  - **User Interface (UI) Design**:
+    - A form with fields for date, amount, category, and description.
+    - Date picker for selecting the date.
+    - Dropdown menu for categories.
+    - Save and Cancel buttons.
+  - **Data Storage and Retrieval**:
+    - Transactions are stored in a SQL database with fields: id, date, amount, category, description.
+    - Indexed by date and category for efficient retrieval.
+  - **Localization and Currency**:
+    - Amounts are displayed according to the user's selected currency.
+    - Dates and numbers formatted based on user locale settings.
+- **Scenarios**:
+  - User logs a new expense under the 'Groceries' category.
+  - User views a list of all recent transactions.
+- **Acceptance Criteria**:
+  - Transactions are saved in the database.
+  - Users can view a list of transactions with correct details.
 
-## Reports
+### Budgeting
 
-Visualize your transaction history with beautiful and intuitive graphs. Analyze your spending patterns over time and identify areas where you can save more.
+- **Description**: Set and manage budgets.
+- **Detailed Requirements**:
+  - **Setting Budgets**:
+    - Users can set budgets with a **fixed amount** or as a **percentage** of income.
+    - Budgets can be set for different categories (e.g., Groceries, Entertainment).
+  - **Notifications**:
+    - Users receive notifications when approaching or exceeding budget limits.
+    - Notification types: **email**, **push notifications**.
+  - **UI Design**:
+    - Budget setting interface with fields for amount or percentage and category selection.
+    - Notification settings page to configure preferences.
+  - **Data Storage**:
+    - Budgets are stored in the database with fields: id, amount, category, user_id, and notification preferences.
+- **Scenarios**:
+  - User sets a budget of ₱500 for Groceries.
+  - User receives a notification when spending reaches ₱450.
+- **Acceptance Criteria**:
+  - Users can set, update, and delete budgets.
+  - Notifications are sent when budget limits are approached or exceeded.
 
-   - Graph types: Pie charts, bar graphs, line charts.
-   - Insight: Identify peak spending months to adjust budgets accordingly.
+### Reports
 
-## Export
+- **Description**: Visualize spending with graphs.
+- **Detailed Requirements**:
+  - **Types of Reports**:
+    - Monthly spending reports.
+    - Category-wise spending breakdown.
+  - **Customization**:
+    - Users can filter reports by date ranges and categories.
+    - Options to export reports as PDF or CSV.
+  - **UI Design**:
+    - Graphical representation of spending (e.g., pie charts, bar graphs).
+    - Filters and customization options.
+  - **Data Retrieval**:
+    - Reports are generated based on transaction data from the database.
+- **Scenarios**:
+  - User view a monthly spending report.
+  - User customizes a report to show spending by category for the past three months.
+- **Acceptance Criteria**:
+  - Reports accurately reflect transaction data.
+  - Users can customize and export reports.
 
-Export your transaction history to CSV for further analysis. Easily share your financial data with accountants or import it into other financial tools.
+### Export
 
-   - CSV structure: Date, Amount, Category, Description.
-   - Customization: Choose specific date ranges for export.
+- **Description**: Export data to CSV.
+- **Detailed Requirements**:
+  - **Export Options**:
+    - Users can export transactions for different date ranges.
+    - Users can select specific categories for export.
+  - **CSV Format**:
+    - The CSV file includes columns: Date, Amount, Category, Description.
+  - **UI Design**:
+    - Export button with options for date range and categories.
+- **Scenarios**:
+  - User exports transactions from January to June.
+  - User exports only Groceries-related transactions.
+- **Acceptance Criteria**:
+  - CSV file contains accurate transaction details as specified.
 
-# Objectives and Goals
+## Feature Interactions
 
-The main objectives and goals of the financial management application are as follows:
+- **Transaction Loggin and Budgeting**: The budgeting feature relies on accurate transaction data. Users should be able to view how their spending impacts their budget.
+- **Reports and Transaction Logging**: The reporting feature uses transaction data to generate insights and charts. Accurate transaction logging is crucial for reliable reports.
 
-1. **Financial Tracking**: Enable users to track their income and expenses efficiently to gain insights into their financial health.
+## Objectives and Goals
 
-2. **Budget Management**: Assist users in setting and managing budgets to achieve their financial goals and avoid overspending.
-
-3. **Data Visualization**: Provide users with visual representations of their financial data through graphs and reports for better analysis.
-
-4. **Data Export**: Allow users to export their transaction history to CSV format for external analysis or sharing with professionals.
-
-5. **Goal Tracking**: Enable users to set financial objectives, milestones, and deadlines to monitor progress and stay motivated towards achieving their goals.
-
-6. **Notification System**: Implement a notification system to alert users when they are close to exceeding budget limits or missing deadlines.
-
-7. **User-Friendly Interface**: Design an intuitive and user-friendly interface to enhance user experience and make financial management easy and accessible.
-
-These objectives and goals aim to help users effectively manage their finances, make informed decisions, and work towards financial stability and growth.
+- **Primary Objective**: To develop a mobile application that allows users to track their income and expenses, set budgets, and generate financial reports.
+- **Goals**:
+  - Provide a user-friendly interface for managing transactions.
+  - Enable users to set and monitor budgets.
+  - Generate comprehensive reports to help users understand their financial situation.

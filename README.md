@@ -187,7 +187,7 @@ The development of the CashFlow app is divided into several steps:
 13. **Prepare for Release**
     - **Example**: Create app builds for iOS and Android, test on real devices, and prepare app store listings.
 
-Each step in the development plan corresponds to specific tasks that are essential for the successful completion of the CashFlow app. For more detailed information about each step, please refer to the [Project Requirements](project_requirements.md) section in the project documentation.
+Each step in the development plan corresponds to specific tasks that are essential for the successful completion of the CashFlow app. For more detailed information about the core requirements and features for the app, please refer to the [Project Requirements](project_requirements.md) section in the project documentation.
 
 ## Risks and Mitigation Strategies
 
@@ -436,7 +436,7 @@ If you encounter any issues during installation or development, refer to the fol
 
    - **A**: Go to the home screen and click the "Add Transaction" button. Enter the details such as title, amount, and date, and then save.
 
-2. \*\*Q: What should I do if the app crashes when adding a transaction?
+2. **Q: What should I do if the app crashes when adding a transaction?**
 
    - **A**: Check the error logs for detailed information. Ensure that all required fields are filled and validate the input data.
 
