@@ -1,20 +1,24 @@
+import 'package:intl/intl.dart';
+
 class Transaction {
   final String id;
   final double amount;
   final String category;
   final DateTime date;
+  final String formattedDate;
+  final String formattedAmount;
 
   Transaction(
       {required this.id,
       required this.amount,
       required this.category,
-      required this.date}) {
-    // Validation
-    if (amount < 0) throw ArgumentError('Amount cannot be negative');
-    if (date.isAfter(DateTime.now())) {
-      throw ArgumentError('Date cannot be in the future');
-    }
-  }
+      required this.date})
+      : formattedDate = DateFormat('MMM dd, yyyy HH:mm a').format(date),
+        formattedAmount = NumberFormat.currency(
+          locale: 'en_PH',
+          symbol: '₱',
+          decimalDigits: 2,
+        ).format(amount);
 
   // Convert to a map for database storage
   Map<String, dynamic> toMap() {
@@ -37,7 +41,7 @@ class Transaction {
         date: DateTime.parse(map['date'] as String),
       );
     } catch (e) {
-      throw FormatException('Error parsing transaction data', e.toString());
+      throw FormatException('Error parsing transaction data: ${e.toString()}');
     }
   }
 

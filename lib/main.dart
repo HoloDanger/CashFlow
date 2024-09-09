@@ -1,16 +1,35 @@
+import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:logger/logger.dart';
+import 'package:money_tracker/screens/home_screen.dart';
+import 'package:money_tracker/services/database_service.dart';
 import 'package:provider/provider.dart';
 import 'package:money_tracker/providers/transaction_provider.dart';
-import 'package:money_tracker/services/database_service.dart';
-import 'package:money_tracker/screens/home_screen.dart';
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+void main() {
+  // Making zone errors fatal can help in debugging
+  BindingBase.debugZoneErrorsAreFatal = true;
 
-  // Initialize the database service
-  final databaseService = DatabaseService();
+  // Capture the current zone
+  final Zone currentZone = Zone.current;
 
-  runApp(MyApp(databaseService: databaseService));
+  final Logger logger = Logger();
+  // Run the app initialization in the current zone
+  currentZone.run(() async {
+    // Ensure Flutter binding is initialized in this zone
+    WidgetsFlutterBinding.ensureInitialized();
+
+    // Initialize services or perform async operations here
+    final databaseService = DatabaseService();
+
+    FlutterError.onError = (FlutterErrorDetails details) {
+      logger.e('Flutter error: ${details.exception}');
+      // Optionally, send the error to a monitoring service
+    };
+    // Run the app
+    runApp(MyApp(databaseService: databaseService));
+  });
 }
 
 class MyApp extends StatelessWidget {

@@ -15,7 +15,6 @@ class AddTransactionScreenState extends State<AddTransactionScreen> {
   final _formKey = GlobalKey<FormState>();
   final _amountController = TextEditingController();
   String? _selectedCategory;
-  final DateTime _selectedDate = DateTime.now();
 
   final List<String> _categories = [
     'Food',
@@ -38,11 +37,13 @@ class AddTransactionScreenState extends State<AddTransactionScreen> {
       return;
     }
 
+    final currentDate = DateTime.now();
+
     final newTranslation = Transaction(
       id: const Uuid().v4(),
       amount: enteredAmount,
       category: enteredCategory,
-      date: _selectedDate,
+      date: currentDate,
     );
 
     Provider.of<TransactionProvider>(context, listen: false)
