@@ -35,7 +35,7 @@ class DatabaseService {
     );
   }
 
-  // Insert a transaction, replacing if it already exists
+  // Insert or replace a transaction
   Future<void> insertTransaction(my_model.Transaction transaction) async {
     final db = await _db;
     await db.insert(
@@ -49,7 +49,6 @@ class DatabaseService {
   Future<List<my_model.Transaction>> getTransactions() async {
     final db = await _db;
     final List<Map<String, dynamic>> maps = await db.query('transactions');
-
     return List.generate(maps.length, (i) {
       return my_model.Transaction.fromMap(maps[i]);
     });
