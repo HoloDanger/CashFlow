@@ -2,10 +2,11 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:logger/logger.dart';
+import 'package:money_tracker/providers/category_provider.dart';
+import 'package:money_tracker/providers/transaction_provider.dart';
 import 'package:money_tracker/screens/home_screen.dart';
 import 'package:money_tracker/services/database_service.dart';
 import 'package:provider/provider.dart';
-import 'package:money_tracker/providers/transaction_provider.dart';
 
 void main() {
   // Making zone errors fatal can help in debugging
@@ -44,6 +45,9 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(
           create: (_) => TransactionProvider(databaseService: databaseService),
         ),
+        ChangeNotifierProvider(
+          create: (_) => CategoryProvider(),
+        )
       ],
       child: MaterialApp(
         title: 'CashFlow - Money Tracker',

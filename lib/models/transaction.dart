@@ -13,7 +13,7 @@ class Transaction {
       required this.amount,
       required this.category,
       required this.date})
-      : formattedDate = DateFormat('MMM dd, yyyy HH:mm a').format(date),
+      : formattedDate = DateFormat('MMM dd, yyyy').format(date),
         formattedAmount = NumberFormat.currency(
           locale: 'en_PH',
           symbol: '₱',

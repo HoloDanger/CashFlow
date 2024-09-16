@@ -19,12 +19,16 @@ class HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    _fetchTransactionsFuture =
-        Provider.of<TransactionProvider>(context, listen: false)
-            .fetchTransactions()
-            .catchError((error) {
+    _fetchTransactionsFuture = _fetchTransactions();
+  }
+
+  Future<void> _fetchTransactions() async {
+    try {
+      await Provider.of<TransactionProvider>(context, listen: false)
+          .fetchTransactions();
+    } catch (error) {
       logger.e('Error initializing transactions: $error');
-    });
+    }
   }
 
   @override
@@ -43,7 +47,7 @@ class HomeScreenState extends State<HomeScreen> {
                 ),
               );
             },
-          )
+          ),
         ],
       ),
       body: FutureBuilder(
@@ -69,13 +73,7 @@ class HomeScreenState extends State<HomeScreen> {
                   ElevatedButton(
                     onPressed: () {
                       setState(() {
-                        _fetchTransactionsFuture =
-                            Provider.of<TransactionProvider>(context,
-                                    listen: false)
-                                .fetchTransactions()
-                                .catchError((error) {
-                          logger.e('Error retrying transactions: $error');
-                        });
+                        _fetchTransactionsFuture = _fetchTransactions();
                       });
                     },
                     child: const Text('Retry'),
