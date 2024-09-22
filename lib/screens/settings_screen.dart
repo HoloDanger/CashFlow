@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:money_tracker/screens/budget_management_screen.dart';
 import 'package:money_tracker/screens/category_management_screen.dart';
 
 class SettingsScreen extends StatelessWidget {
@@ -39,6 +40,17 @@ class SettingsScreen extends StatelessWidget {
                 Navigator.of(context).push(
                   MaterialPageRoute(
                     builder: (context) => const CategoryManagementScreen(),
+                  ),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.money),
+              title: const Text('Manage Budgets'),
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => const BudgetManagementScreen(),
                   ),
                 );
               },

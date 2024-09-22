@@ -48,4 +48,10 @@ class TransactionProvider with ChangeNotifier {
       rethrow;
     }
   }
+
+  double get totalExpenses {
+    return _transactions
+        .where((transaction) => transaction.amount < 0)
+        .fold(0.0, (previousValue, element) => previousValue + element.amount);
+  }
 }

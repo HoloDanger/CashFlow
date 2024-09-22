@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:logger/logger.dart';
+import 'package:money_tracker/providers/budget_provider.dart';
 import 'package:money_tracker/providers/category_provider.dart';
 import 'package:money_tracker/providers/transaction_provider.dart';
 import 'package:money_tracker/screens/home_screen.dart';
@@ -12,12 +13,10 @@ void main() {
   // Making zone errors fatal can help in debugging
   BindingBase.debugZoneErrorsAreFatal = true;
 
-  // Capture the current zone
-  final Zone currentZone = Zone.current;
-
   final Logger logger = Logger();
-  // Run the app initialization in the current zone
-  currentZone.run(() async {
+
+  // Run the app initialization in a guarded zone
+  runZonedGuarded(() async {
     // Ensure Flutter binding is initialized in this zone
     WidgetsFlutterBinding.ensureInitialized();
 
@@ -25,11 +24,17 @@ void main() {
     final databaseService = DatabaseService();
 
     FlutterError.onError = (FlutterErrorDetails details) {
-      logger.e('Flutter error: ${details.exception}');
+      logger.e(
+        'Flutter error: ${details.exceptionAsString()}\n${details.stack}',
+      );
       // Optionally, send the error to a monitoring service
     };
+
     // Run the app
     runApp(MyApp(databaseService: databaseService));
+  }, (error, stackTrace) {
+    logger.e('Uncaught asynchronous error: $error\n$stackTrace');
+    // Optionally, send the error to a monitoring service
   });
 }
 
@@ -47,7 +52,10 @@ class MyApp extends StatelessWidget {
         ),
         ChangeNotifierProvider(
           create: (_) => CategoryProvider(),
-        )
+        ),
+        ChangeNotifierProvider(
+          create: (_) => BudgetProvider(),
+        ),
       ],
       child: MaterialApp(
         title: 'CashFlow - Money Tracker',

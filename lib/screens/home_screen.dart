@@ -107,52 +107,70 @@ class HomeScreenState extends State<HomeScreen> {
                     ),
                   );
                 }
-                return ListView.builder(
-                  padding: const EdgeInsets.all(8.0),
-                  itemCount: transactionProvider.transactions.length,
-                  itemBuilder: (ctx, index) {
-                    final transaction = transactionProvider.transactions[index];
-                    return Card(
-                      margin: const EdgeInsets.symmetric(vertical: 8.0),
-                      elevation: 8,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: ListTile(
-                        contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16.0, vertical: 8.0),
-                        leading: CircleAvatar(
-                          radius: 24,
-                          backgroundColor: Colors.teal[100],
-                          child: Icon(
-                            Icons.attach_money,
-                            color: Colors.teal[600],
-                          ),
-                        ),
-                        title: Text(
-                          transaction.category,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
-                        ),
-                        subtitle: Text(
-                          '${transaction.formattedAmount} - ${transaction.formattedDate}',
-                          style: TextStyle(
-                            color: Colors.grey[700],
-                            fontSize: 14,
-                          ),
-                        ),
-                        trailing: IconButton(
-                          icon: const Icon(Icons.delete),
-                          color: Colors.red,
-                          onPressed: () {
-                            _deleteTransaction(context, transaction.id);
-                          },
+                return Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Text(
+                        'Total Expenses: \$${transactionProvider.totalExpenses.abs().toStringAsFixed(2)}',
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.redAccent,
                         ),
                       ),
-                    );
-                  },
+                    ),
+                    Expanded(
+                      child: ListView.builder(
+                        padding: const EdgeInsets.all(8.0),
+                        itemCount: transactionProvider.transactions.length,
+                        itemBuilder: (ctx, index) {
+                          final transaction =
+                              transactionProvider.transactions[index];
+                          return Card(
+                            margin: const EdgeInsets.symmetric(vertical: 8.0),
+                            elevation: 8,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: ListTile(
+                              contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 16.0, vertical: 8.0),
+                              leading: CircleAvatar(
+                                radius: 24,
+                                backgroundColor: Colors.teal[100],
+                                child: Icon(
+                                  Icons.attach_money,
+                                  color: Colors.teal[600],
+                                ),
+                              ),
+                              title: Text(
+                                transaction.category,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                              ),
+                              subtitle: Text(
+                                '${transaction.formattedAmount} - ${transaction.formattedDate}',
+                                style: TextStyle(
+                                  color: Colors.grey[700],
+                                  fontSize: 14,
+                                ),
+                              ),
+                              trailing: IconButton(
+                                icon: const Icon(Icons.delete),
+                                color: Colors.red,
+                                onPressed: () {
+                                  _deleteTransaction(context, transaction.id);
+                                },
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
                 );
               },
             );
