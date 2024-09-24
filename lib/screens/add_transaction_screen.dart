@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:money_tracker/providers/transaction_provider.dart';
-import 'package:money_tracker/providers/category_provider.dart'; // Import CategoryProvider
+import 'package:money_tracker/providers/category_provider.dart';
 import 'package:money_tracker/models/transaction.dart';
 import 'package:uuid/uuid.dart';
 
@@ -18,6 +18,7 @@ class AddTransactionScreenState extends State<AddTransactionScreen> {
   final _dateController = TextEditingController();
   String? _selectedCategory;
   DateTime? _selectedDate;
+  String _recurringFrequency = 'None';
 
   Future<void> _selectDate() async {
     final DateTime? pickedDate = await showDatePicker(
@@ -49,11 +50,14 @@ class AddTransactionScreenState extends State<AddTransactionScreen> {
       return;
     }
 
+    // Handle recurring transactions
     final newTransaction = Transaction(
       id: const Uuid().v4(),
       amount: enteredAmount,
       category: enteredCategory,
       date: enteredDate,
+      recurringFrequency:
+          _recurringFrequency != 'None' ? _recurringFrequency : null,
     );
 
     Provider.of<TransactionProvider>(context, listen: false)
@@ -106,9 +110,6 @@ class AddTransactionScreenState extends State<AddTransactionScreen> {
                     if (amount == null) {
                       return 'Invalid number format. Please enter a valid number.';
                     }
-                    if (amount <= 0) {
-                      return 'Amount must be greater than zero.';
-                    }
                     return null;
                   },
                 ),
@@ -155,6 +156,29 @@ class AddTransactionScreenState extends State<AddTransactionScreen> {
                       return 'Date is required. Please select a date.';
                     }
                     return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+
+                // Recurring Frequency Dropdown
+                DropdownButtonFormField<String>(
+                  value: _recurringFrequency,
+                  decoration: const InputDecoration(
+                    labelText: 'Recurring Frequency',
+                    hintText: 'Select frequency',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.repeat),
+                  ),
+                  items: const [
+                    DropdownMenuItem(value: 'None', child: Text('None')),
+                    DropdownMenuItem(value: 'Daily', child: Text('Daily')),
+                    DropdownMenuItem(value: 'Weekly', child: Text('Weekly')),
+                    DropdownMenuItem(value: 'Monthly', child: Text('Monthly')),
+                  ],
+                  onChanged: (newValue) {
+                    setState(() {
+                      _recurringFrequency = newValue!;
+                    });
                   },
                 ),
                 const SizedBox(height: 20),

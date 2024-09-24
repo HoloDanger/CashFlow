@@ -7,12 +7,14 @@ class Transaction {
   final DateTime date;
   final String formattedDate;
   final String formattedAmount;
+  final String? recurringFrequency;
 
   Transaction(
       {required this.id,
       required this.amount,
       required this.category,
-      required this.date})
+      required this.date,
+      this.recurringFrequency})
       : formattedDate = DateFormat('MMM dd, yyyy').format(date),
         formattedAmount = NumberFormat.currency(
           locale: 'en_PH',

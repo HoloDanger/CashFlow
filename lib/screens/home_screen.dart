@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:logger/logger.dart';
+import 'package:money_tracker/screens/budget_overview_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:money_tracker/providers/transaction_provider.dart';
 import 'add_transaction_screen.dart';
@@ -38,6 +39,16 @@ class HomeScreenState extends State<HomeScreen> {
         title: const Text('CashFlow', style: TextStyle(color: Colors.white)),
         backgroundColor: Colors.teal,
         actions: <Widget>[
+          IconButton(
+            icon: const Icon(Icons.pie_chart),
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => const BudgetOverviewScreen(),
+                ),
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.settings),
             onPressed: () {
@@ -112,7 +123,7 @@ class HomeScreenState extends State<HomeScreen> {
                     Padding(
                       padding: const EdgeInsets.all(16.0),
                       child: Text(
-                        'Total Expenses: \$${transactionProvider.totalExpenses.abs().toStringAsFixed(2)}',
+                        'Total Expenses: ₱${transactionProvider.totalExpenses.abs().toStringAsFixed(2)}',
                         style: const TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
