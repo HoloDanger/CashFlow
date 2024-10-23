@@ -45,21 +45,6 @@ class DatabaseService {
     }
   }
 
-  // Insert or replace a transaction
-  Future<void> insertTransaction(my_model.Transaction transaction) async {
-    final db = await _db;
-    try {
-      await db.insert(
-        'transactions',
-        transaction.toMap(),
-        conflictAlgorithm: ConflictAlgorithm.replace,
-      );
-    } catch (e) {
-      _logger.e('Failed to insert transaction: $e');
-      rethrow;
-    }
-  }
-
   // Retrieve all transaction
   Future<List<my_model.Transaction>> getTransactions(
       {int limit = 20, int offset = 0}) async {
@@ -74,6 +59,21 @@ class DatabaseService {
       return maps.map((map) => my_model.Transaction.fromMap(map)).toList();
     } catch (e) {
       _logger.e('Failed to fetch transactions: $e');
+      rethrow;
+    }
+  }
+
+  // Insert or replace a transaction
+  Future<void> insertTransaction(my_model.Transaction transaction) async {
+    final db = await _db;
+    try {
+      await db.insert(
+        'transactions',
+        transaction.toMap(),
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    } catch (e) {
+      _logger.e('Failed to insert transaction: $e');
       rethrow;
     }
   }

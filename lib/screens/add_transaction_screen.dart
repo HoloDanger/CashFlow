@@ -4,6 +4,7 @@ import 'package:money_tracker/providers/transaction_provider.dart';
 import 'package:money_tracker/providers/category_provider.dart';
 import 'package:money_tracker/models/transaction.dart';
 import 'package:uuid/uuid.dart';
+import 'package:logger/logger.dart';
 
 class AddTransactionScreen extends StatefulWidget {
   const AddTransactionScreen({super.key});
@@ -18,7 +19,8 @@ class AddTransactionScreenState extends State<AddTransactionScreen> {
   final _dateController = TextEditingController();
   String? _selectedCategory;
   DateTime? _selectedDate;
-  String _recurringFrequency = 'None';
+  String _recurrenceFrequency = 'None';
+  final Logger logger = Logger();
 
   Future<void> _selectDate() async {
     final DateTime? pickedDate = await showDatePicker(
@@ -50,18 +52,24 @@ class AddTransactionScreenState extends State<AddTransactionScreen> {
       return;
     }
 
-    // Handle recurring transactions
     final newTransaction = Transaction(
       id: const Uuid().v4(),
       amount: enteredAmount,
+      formattedAmount: '\$${enteredAmount.toStringAsFixed(2)}',
       category: enteredCategory,
       date: enteredDate,
-      recurringFrequency:
-          _recurringFrequency != 'None' ? _recurringFrequency : null,
+      formattedDate: '${enteredDate.toLocal()}'.split(' ')[0],
+      isRecurring: _recurrenceFrequency != 'None',
+      recurrenceFrequency: _recurrenceFrequency != 'None'
+          ? RecurrenceFrequency.values.firstWhere(
+              (e) => e.toString().split('.').last == _recurrenceFrequency)
+          : null,
+      nextOccurrence: enteredDate,
     );
 
     Provider.of<TransactionProvider>(context, listen: false)
         .addTransaction(newTransaction);
+    logger.i('Submitted transaction: $newTransaction');
 
     Navigator.of(context).pop();
   }
@@ -72,10 +80,8 @@ class AddTransactionScreenState extends State<AddTransactionScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'Add Transaction',
-          style: TextStyle(color: Colors.white),
-        ),
+        title: const Text('Add Transaction',
+            style: TextStyle(color: Colors.white)),
         backgroundColor: Colors.teal,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
@@ -104,11 +110,11 @@ class AddTransactionScreenState extends State<AddTransactionScreen> {
                   keyboardType: TextInputType.number,
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'Amount field cannot be empty. Please enter a value.';
+                      return 'Amount field cannot be empty.';
                     }
                     final amount = double.tryParse(value);
                     if (amount == null) {
-                      return 'Invalid number format. Please enter a valid number.';
+                      return 'Invalid number format.';
                     }
                     return null;
                   },
@@ -135,7 +141,7 @@ class AddTransactionScreenState extends State<AddTransactionScreen> {
                   },
                   validator: (value) {
                     if (value == null) {
-                      return 'Category selection is required. Please choose one.';
+                      return 'Category selection is required.';
                     }
                     return null;
                   },
@@ -153,16 +159,14 @@ class AddTransactionScreenState extends State<AddTransactionScreen> {
                   onTap: _selectDate,
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'Date is required. Please select a date.';
+                      return 'Date is required.';
                     }
                     return null;
                   },
                 ),
                 const SizedBox(height: 16),
-
-                // Recurring Frequency Dropdown
                 DropdownButtonFormField<String>(
-                  value: _recurringFrequency,
+                  value: _recurrenceFrequency,
                   decoration: const InputDecoration(
                     labelText: 'Recurring Frequency',
                     hintText: 'Select frequency',
@@ -177,7 +181,7 @@ class AddTransactionScreenState extends State<AddTransactionScreen> {
                   ],
                   onChanged: (newValue) {
                     setState(() {
-                      _recurringFrequency = newValue!;
+                      _recurrenceFrequency = newValue!;
                     });
                   },
                 ),
@@ -196,10 +200,7 @@ class AddTransactionScreenState extends State<AddTransactionScreen> {
                   ),
                   child: const Text(
                     'Submit',
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.white,
-                    ),
+                    style: TextStyle(fontSize: 16, color: Colors.white),
                   ),
                 ),
               ],

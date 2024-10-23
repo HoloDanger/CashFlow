@@ -4,21 +4,22 @@ import 'package:money_tracker/models/transaction.dart';
 import 'package:money_tracker/services/database_service.dart';
 
 class TransactionProvider with ChangeNotifier {
-  List<Transaction> _transactions = [];
+  final List<Transaction> _transactions = [];
   final DatabaseService _databaseService;
-
   final Logger logger = Logger();
 
   TransactionProvider({required DatabaseService databaseService})
       : _databaseService = databaseService;
 
-  List<Transaction> get transactions => _transactions;
+  List<Transaction> get transactions =>
+      List.unmodifiable(_transactions); // Prevent external modification
 
   // Add a new transaction
   Future<void> addTransaction(Transaction transaction) async {
     try {
       _transactions.add(transaction);
       await _databaseService.insertTransaction(transaction);
+      logger.i('Added transaction: $transaction');
       notifyListeners();
     } catch (error) {
       logger.e('Failed to add transaction: $error');
@@ -29,7 +30,9 @@ class TransactionProvider with ChangeNotifier {
   Future<void> fetchTransactions() async {
     try {
       logger.i('Fetching transactions from database.');
-      _transactions = await _databaseService.getTransactions();
+      _transactions.clear(); // Clear existing list before fetching
+      _transactions.addAll(await _databaseService.getTransactions());
+      logger.i('Fetched ${_transactions.length} transactions.');
       notifyListeners();
     } catch (error) {
       logger.e('Error fetching transactions: $error');
@@ -39,12 +42,15 @@ class TransactionProvider with ChangeNotifier {
 
   // Delete a transaction
   Future<void> deleteTransaction(String id) async {
-    _transactions.removeWhere((txn) => txn.id == id);
-
     try {
+      final transactionToDelete =
+          _transactions.firstWhere((txn) => txn.id == id);
+      _transactions.remove(transactionToDelete);
       await _databaseService.deleteTransaction(id);
+      logger.i('Deleted transaction: $transactionToDelete');
       notifyListeners();
     } catch (error) {
+      logger.e('Error deleting transaction: $error');
       rethrow;
     }
   }

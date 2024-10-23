@@ -7,6 +7,7 @@ import 'package:money_tracker/providers/category_provider.dart';
 import 'package:money_tracker/providers/transaction_provider.dart';
 import 'package:money_tracker/screens/home_screen.dart';
 import 'package:money_tracker/services/database_service.dart';
+import 'package:money_tracker/services/recurring_transaction_service.dart';
 import 'package:provider/provider.dart';
 
 void main() {
@@ -22,16 +23,20 @@ void main() {
 
     // Initialize services or perform async operations here
     final databaseService = DatabaseService();
+    final recurringTransactionService = RecurringTransactionService();
 
     FlutterError.onError = (FlutterErrorDetails details) {
       logger.e(
         'Flutter error: ${details.exceptionAsString()}\n${details.stack}',
       );
-      // Optionally, send the error to a monitoring service
     };
 
-    // Run the app
-    runApp(MyApp(databaseService: databaseService));
+    // Fetch existing transactions from the database
+    databaseService.getTransactions().then((transactions) {
+      // Schedule recurring transactions
+      recurringTransactionService.scheduleRecurringTransactions(transactions);
+      runApp(MyApp(databaseService: databaseService));
+    });
   }, (error, stackTrace) {
     logger.e('Uncaught asynchronous error: $error\n$stackTrace');
     // Optionally, send the error to a monitoring service

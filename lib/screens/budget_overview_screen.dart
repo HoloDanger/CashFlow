@@ -78,12 +78,16 @@ class BudgetOverviewScreenState extends State<BudgetOverviewScreen> {
                         child: ListView.builder(
                           itemCount: budgetProvider.budgetCategories.length,
                           itemBuilder: (context, index) {
+                            String categoryName = budgetProvider
+                                .budgetCategories.keys
+                                .elementAt(index);
                             var category =
-                                budgetProvider.budgetCategories[index];
+                                budgetProvider.budgetCategories[categoryName];
                             return ListTile(
-                              title: Text(category),
+                              title:
+                                  Text(category!.name), // Use the name property
                               trailing: Text(
-                                '\$${budgetProvider.categoryExpenses[category]?.toStringAsFixed(2) ?? '0.00'}',
+                                '₱${(budgetProvider.categoryExpenses[categoryName]?.toStringAsFixed(2) ?? '0.00')}',
                               ),
                             );
                           },
