@@ -1,3 +1,4 @@
+import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
 import 'package:logger/logger.dart';
 import 'package:money_tracker/models/transaction.dart';
@@ -17,8 +18,8 @@ class TransactionProvider with ChangeNotifier {
   // Add a new transaction
   Future<void> addTransaction(Transaction transaction) async {
     try {
-      _transactions.add(transaction);
       await _databaseService.insertTransaction(transaction);
+      _transactions.add(transaction);
       logger.i('Added transaction: $transaction');
       notifyListeners();
     } catch (error) {
@@ -27,7 +28,7 @@ class TransactionProvider with ChangeNotifier {
   }
 
   // Retrieve all transactions
-  Future<void> fetchTransactions() async {
+  Future<List<Transaction>> fetchTransactions() async {
     try {
       logger.i('Fetching transactions from database.');
       _transactions.clear(); // Clear existing list before fetching
@@ -38,13 +39,19 @@ class TransactionProvider with ChangeNotifier {
       logger.e('Error fetching transactions: $error');
       rethrow;
     }
+    return _transactions;
   }
 
   // Delete a transaction
   Future<void> deleteTransaction(String id) async {
     try {
-      final transactionToDelete =
-          _transactions.firstWhere((txn) => txn.id == id);
+      final Transaction? transactionToDelete = _transactions.firstWhereOrNull(
+        (txn) => txn.id == id,
+      );
+      if (transactionToDelete == null) {
+        logger.w('Transaction with id $id not found.');
+        return;
+      }
       _transactions.remove(transactionToDelete);
       await _databaseService.deleteTransaction(id);
       logger.i('Deleted transaction: $transactionToDelete');
