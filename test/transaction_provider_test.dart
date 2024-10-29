@@ -1,26 +1,30 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mockito/annotations.dart';
+import 'package:mockito/mockito.dart' hide Fake;
 import 'package:money_tracker/models/recurrence_frequency.dart';
 import 'package:money_tracker/models/transaction.dart';
 import 'package:money_tracker/providers/transaction_provider.dart';
 import 'package:money_tracker/services/database_service.dart';
-import 'package:mockito/mockito.dart';
-import 'package:mockito/annotations.dart';
+import 'package:money_tracker/utils/custom_exceptions.dart';
 import 'transaction_provider_test.mocks.dart';
 
+// Mock classes
 @GenerateMocks([DatabaseService])
+class MockShowSnackBar extends Mock {
+  void call(String message);
+}
+
 void main() {
   late TransactionProvider transactionProvider;
   late MockDatabaseService mockDatabaseService;
+  late MockShowSnackBar mockShowSnackBar;
 
   setUp(() {
     mockDatabaseService = MockDatabaseService();
+    mockShowSnackBar = MockShowSnackBar();
     transactionProvider =
         TransactionProvider(databaseService: mockDatabaseService);
   });
-
-  void mockShowSnackBar(String message) {
-    // This is a mock callback function for testing purposes.
-  }
 
   Transaction createTransaction({
     required String id,
@@ -44,24 +48,30 @@ void main() {
     );
   }
 
-  group('TransactionProvider', () {
-    test('initial transactions list is empty', () {
+  Future<void> addTransactionAndVerify(Transaction transaction) async {
+    when(mockDatabaseService.insertTransaction(transaction))
+        .thenAnswer((_) async => {});
+    await transactionProvider.addTransaction(
+        transaction, mockShowSnackBar.call);
+    expect(transactionProvider.transactions, contains(transaction));
+    verify(mockDatabaseService.insertTransaction(transaction)).called(1);
+  }
+
+  group('TransactionProvider Initialization', () {
+    test('initial transactions list should be empty', () {
       expect(transactionProvider.transactions, isEmpty);
     });
+  });
 
-    test('addTransaction adds a transaction and notifies listeners', () async {
+  group('TransactionProvider CRUD Operations', () {
+    test('addTransaction should add a transaction and notify listeners',
+        () async {
       final transaction = createTransaction(id: '1', amount: 100.0);
-      when(mockDatabaseService.insertTransaction(transaction))
-          .thenAnswer((_) async => {});
-
-      await transactionProvider.addTransaction(transaction, mockShowSnackBar);
-
-      expect(transactionProvider.transactions, contains(transaction));
-      verify(mockDatabaseService.insertTransaction(transaction)).called(1);
+      await addTransactionAndVerify(transaction);
     });
 
     test(
-        'fetchTransactions retrieves transactions from database and notifies listeners',
+        'fetchTransactions should retrieve transactions from database and notifiy listeners',
         () async {
       final transactions = [
         createTransaction(id: '1', amount: 100.0),
@@ -76,19 +86,10 @@ void main() {
       verify(mockDatabaseService.getTransactions()).called(1);
     });
 
-    test('deleteTransaction removes a transaction and notifies listeners',
+    test('deleteTransaction should remove a transaction and notify listeners',
         () async {
       final transaction = createTransaction(id: '1', amount: 100.0);
-
-      // Mock the insertTransaction method
-      when(mockDatabaseService.insertTransaction(transaction))
-          .thenAnswer((_) async => {});
-
-      // Add the transaction
-      await transactionProvider.addTransaction(transaction, mockShowSnackBar);
-
-      // Verify that the transaction was added
-      expect(transactionProvider.transactions, contains(transaction));
+      await addTransactionAndVerify(transaction);
 
       // Mock the deleteTransaction method
       when(mockDatabaseService.deleteTransaction(transaction.id))
@@ -96,14 +97,34 @@ void main() {
 
       // Delete the transaction
       await transactionProvider.deleteTransaction(
-          transaction.id, mockShowSnackBar);
+          transaction.id, mockShowSnackBar.call);
 
       // Verify that the transaction was removed
       expect(transactionProvider.transactions, isNot(contains(transaction)));
       verify(mockDatabaseService.deleteTransaction(transaction.id)).called(1);
     });
 
-    test('totalExpenses calculates the total expenses correctly', () async {
+    test('updateTransaction should update a transaction and notify listeners',
+        () async {
+      final transaction = createTransaction(id: '1', amount: 100.0);
+      final updatedTransaction = createTransaction(id: '1', amount: 200.0);
+
+      await addTransactionAndVerify(transaction);
+
+      when(mockDatabaseService.updateTransaction(updatedTransaction))
+          .thenAnswer((_) async => {});
+      await transactionProvider.updateTransaction(
+          updatedTransaction, mockShowSnackBar.call);
+
+      expect(transactionProvider.transactions, contains(updatedTransaction));
+      verify(mockDatabaseService.updateTransaction(updatedTransaction))
+          .called(1);
+    });
+  });
+
+  group('TransactionProvider Calculations', () {
+    test('totalExpenses should calculate the total expenses correctly',
+        () async {
       final transactions = [
         createTransaction(id: '1', amount: -100.0),
         createTransaction(id: '2', amount: -30.0),
@@ -117,11 +138,12 @@ void main() {
       expect(transactionProvider.totalExpenses, equals(-130.0));
     });
 
-    test('totalExpenses returns 0.0 when there are no transactions', () {
+    test('totalExpenses should return 0.0 when there are no transactions', () {
       expect(transactionProvider.totalExpenses, equals(0.0));
     });
 
-    test('totalExpenses returns 0.0 when there are only income transactions',
+    test(
+        'totalExpenses should return 0.0 when there are only income transactions',
         () async {
       final transactions = [
         createTransaction(id: '1', amount: 100.0),
@@ -133,55 +155,58 @@ void main() {
 
       expect(transactionProvider.totalExpenses, equals(0.0));
     });
+  });
 
-    test('addTransaction handles errors gracefully', () async {
+  group('TransactionProvider Error Handling', () {
+    test('performTransactionOperation should handle success and error cases',
+        () async {
+      final transaction = createTransaction(id: '1', amount: 100.0);
+
+      // Error case
+      when(mockDatabaseService.insertTransaction(transaction))
+          .thenThrow(DatabaseException('Database error'));
+
+      await transactionProvider.performTransactionOperation(
+        () async => await mockDatabaseService.insertTransaction(transaction),
+        mockShowSnackBar.call,
+        'Success message',
+        'Log message',
+      );
+
+      // Verify error handling
+      verify(mockShowSnackBar.call('Database error')).called(1);
+
+      // Reset the mocks
+      reset(mockDatabaseService);
+      reset(mockShowSnackBar);
+
+      // Success case
+      when(mockDatabaseService.insertTransaction(transaction))
+          .thenAnswer((_) async => {});
+
+      await transactionProvider.performTransactionOperation(
+        () async => await mockDatabaseService.insertTransaction(transaction),
+        mockShowSnackBar.call,
+        'Success message',
+        'Log message',
+      );
+
+      // Verify success handling
+      verify(mockShowSnackBar.call('Success message')).called(1);
+    });
+
+    test('addTransaction should handle errors gracefully', () async {
       final transaction = createTransaction(id: '1', amount: 100.0);
       when(mockDatabaseService.insertTransaction(transaction))
           .thenThrow(Exception('Database error'));
 
-      await transactionProvider.addTransaction(transaction, mockShowSnackBar);
+      await transactionProvider.addTransaction(
+          transaction, mockShowSnackBar.call);
 
       expect(transactionProvider.transactions, isEmpty);
     });
 
-    test(
-        'addTransaction with zero amount adds the transaction and notifies listeners',
-        () async {
-      final transaction = createTransaction(id: '1', amount: 0.0);
-      when(mockDatabaseService.insertTransaction(transaction))
-          .thenAnswer((_) async => {});
-
-      await transactionProvider.addTransaction(transaction, mockShowSnackBar);
-
-      expect(transactionProvider.transactions, contains(transaction));
-      verify(mockDatabaseService.insertTransaction(transaction)).called(1);
-    });
-
-    test(
-        'addTransaction with negative amount adds the transaction and notifies listeners',
-        () async {
-      final transaction = createTransaction(id: '2', amount: -50.0);
-      when(mockDatabaseService.insertTransaction(transaction))
-          .thenAnswer((_) async => {});
-
-      await transactionProvider.addTransaction(transaction, mockShowSnackBar);
-
-      expect(transactionProvider.transactions, contains(transaction));
-      verify(mockDatabaseService.insertTransaction(transaction)).called(1);
-    });
-
-    test('deleteTransaction handles non-existent transaction gracefully',
-        () async {
-      final transaction = createTransaction(id: '3', amount: 100.0);
-
-      await transactionProvider.deleteTransaction(
-          transaction.id, mockShowSnackBar);
-
-      expect(transactionProvider.transactions, isEmpty);
-      verifyNever(mockDatabaseService.deleteTransaction(transaction.id));
-    });
-
-    test('fetchTransactions handles database error gracefully', () async {
+    test('fetchTransactions should handle database error gracefully', () async {
       when(mockDatabaseService.getTransactions())
           .thenThrow(Exception('Database error'));
 
@@ -195,25 +220,64 @@ void main() {
       verify(mockDatabaseService.getTransactions()).called(1);
     });
 
-    test('add a large number of transactions', () async {
-      final transactions = List.generate(
-        1000,
-        (index) => createTransaction(id: '$index', amount: index.toDouble()),
-      );
+    test('deleteTransaction should handle non-existent transaction gracefully',
+        () async {
+      final transaction = createTransaction(id: '3', amount: 100.0);
 
-      for (var transaction in transactions) {
-        when(mockDatabaseService.insertTransaction(transaction))
-            .thenAnswer((_) async => {});
-        await transactionProvider.addTransaction(transaction, mockShowSnackBar);
-      }
+      await transactionProvider.deleteTransaction(
+          transaction.id, mockShowSnackBar.call);
 
-      expect(transactionProvider.transactions.length, equals(1000));
-      for (var transaction in transactions) {
-        verify(mockDatabaseService.insertTransaction(transaction)).called(1);
-      }
+      expect(transactionProvider.transactions, isEmpty);
+      verifyNever(mockDatabaseService.deleteTransaction(transaction.id));
+    });
+  });
+
+  group('TransactionProvider Edge Cases', () {
+    test(
+        'addTransaction with zero amount should add the transaction and notify listeners',
+        () async {
+      final transaction = createTransaction(id: '1', amount: 0.0);
+      await addTransactionAndVerify(transaction);
     });
 
-    test('listeners are notified the correct number of times', () async {
+    test(
+        'addTransaction with negative amount should add the transaction and notifiy listeners',
+        () async {
+      final transaction = createTransaction(id: '2', amount: -50.0);
+      await addTransactionAndVerify(transaction);
+    });
+
+    test(
+        'addTransaction with very large amount should add the transaction and notify listeners',
+        () async {
+      final transaction = createTransaction(id: '3', amount: 1e9);
+      await addTransactionAndVerify(transaction);
+    });
+
+    test(
+        'addTransaction with special characters in category should add the transaction and notify listeners',
+        () async {
+      final transaction =
+          createTransaction(id: '4', amount: 100.0, category: '@#\$%^&*()');
+      await addTransactionAndVerify(transaction);
+    });
+  });
+
+  group('TransactionProvider Notifications', () {
+    test('notifyAndShowSnackBar should notify listeners and show snackbar', () {
+      int notificationCount = 0;
+      transactionProvider.addListener(() {
+        notificationCount++;
+      });
+
+      transactionProvider.notifyAndShowSnackBar(
+          mockShowSnackBar.call, 'Test message');
+
+      expect(notificationCount, equals(1));
+      verify(mockShowSnackBar('Test message')).called(1);
+    });
+
+    test('listeners should be notified the correct number of times', () async {
       int notificationCount = 0;
       transactionProvider.addListener(() {
         notificationCount++;
@@ -223,9 +287,29 @@ void main() {
       when(mockDatabaseService.insertTransaction(transaction))
           .thenAnswer((_) async => {});
 
-      await transactionProvider.addTransaction(transaction, mockShowSnackBar);
+      await transactionProvider.addTransaction(
+          transaction, mockShowSnackBar.call);
 
       expect(notificationCount, equals(1));
+    });
+
+    test('add a large number of transactions should work correctly', () async {
+      final transactions = List.generate(
+        1000,
+        (index) => createTransaction(id: '$index', amount: index.toDouble()),
+      );
+
+      for (var transaction in transactions) {
+        when(mockDatabaseService.insertTransaction(transaction))
+            .thenAnswer((_) async => {});
+        await transactionProvider.addTransaction(
+            transaction, mockShowSnackBar.call);
+      }
+
+      expect(transactionProvider.transactions.length, equals(1000));
+      for (var transaction in transactions) {
+        verify(mockDatabaseService.insertTransaction(transaction)).called(1);
+      }
     });
   });
 }

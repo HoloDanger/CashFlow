@@ -36,14 +36,15 @@ class TransactionProvider with ChangeNotifier {
   }
 
   /// Performs a transaction operation and handles success and error cases.
-  Future<void> _performTransactionOperation(
-      Future<void> Function() operation,
-      Function(String) showSnackBarCallback,
-      String successMessage,
-      String logMessage) async {
+  Future<void> performTransactionOperation(
+    Future<void> Function() operation,
+    Function(String) showSnackBarCallback,
+    String successMessage,
+    String logMessage,
+  ) async {
     try {
       await operation();
-      _notifyAndShowSnackBar(showSnackBarCallback, successMessage);
+      notifyAndShowSnackBar(showSnackBarCallback, successMessage);
     } on DatabaseException catch (e) {
       _handleError(
           showSnackBarCallback, '$logMessage: Database error', e, e.message);
@@ -56,7 +57,7 @@ class TransactionProvider with ChangeNotifier {
   /// Adds a new transaction and provides user feedback.
   Future<void> addTransaction(
       Transaction transaction, Function(String) showSnackBarCallback) async {
-    await _performTransactionOperation(
+    await performTransactionOperation(
       () async {
         await _databaseService.insertTransaction(transaction);
         _transactions.add(transaction);
@@ -92,7 +93,7 @@ class TransactionProvider with ChangeNotifier {
   /// Deletes a transaction with the given [id] and provides user feedback.
   Future<void> deleteTransaction(
       String id, Function(String) showSnackBarCallback) async {
-    await _performTransactionOperation(
+    await performTransactionOperation(
       () async {
         final transactionToDelete = _transactionMap[id];
         if (transactionToDelete == null) {
@@ -114,7 +115,7 @@ class TransactionProvider with ChangeNotifier {
   /// Updates an existing transaction and provides user feedback.
   Future<void> updateTransaction(Transaction updatedTransaction,
       Function(String) showSnackBarCallback) async {
-    await _performTransactionOperation(
+    await performTransactionOperation(
       () async {
         final index =
             _transactions.indexWhere((txn) => txn.id == updatedTransaction.id);
@@ -141,7 +142,7 @@ class TransactionProvider with ChangeNotifier {
   }
 
   /// Notifies listeners and shows a snackbar with the given [message].
-  void _notifyAndShowSnackBar(
+  void notifyAndShowSnackBar(
       Function(String) showSnackBarCallback, String message) {
     notifyListeners();
     showSnackBarCallback(message);
