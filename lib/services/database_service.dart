@@ -2,6 +2,7 @@ import 'package:logger/logger.dart';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:money_tracker/models/transaction.dart' as my_model;
+import 'package:money_tracker/utils/custom_exceptions.dart' as my_exceptions;
 
 class DatabaseService {
   // Singleton pattern implementation
@@ -59,7 +60,7 @@ class DatabaseService {
       return maps.map((map) => my_model.Transaction.fromMap(map)).toList();
     } catch (e) {
       _logger.e('Failed to fetch transactions: $e');
-      rethrow;
+      throw my_exceptions.DatabaseException('Failed to fetch transactions');
     }
   }
 
@@ -74,7 +75,25 @@ class DatabaseService {
       );
     } catch (e) {
       _logger.e('Failed to insert transaction: $e');
-      rethrow;
+      throw my_exceptions.DatabaseException('Failed to insert transaction');
+    }
+  }
+
+  // Update an existing transaction
+  Future<void> updateTransaction(my_model.Transaction transaction) async {
+    final db = await _db;
+    try {
+      await db.update(
+        'transactions',
+        transaction.toMap(),
+        where: 'id = ?',
+        whereArgs: [transaction.id],
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+      _logger.i('Updated transaction: ${transaction.id}');
+    } catch (e) {
+      _logger.e('Failed to update transaction: $e');
+      my_exceptions.DatabaseException('Failed to update transaction');
     }
   }
 
@@ -85,7 +104,7 @@ class DatabaseService {
       return await db.delete('transactions', where: 'id = ?', whereArgs: [id]);
     } catch (e) {
       _logger.e('Failed to delete transaction: $e');
-      rethrow;
+      throw my_exceptions.DatabaseException('Failed to delete transaction');
     }
   }
 

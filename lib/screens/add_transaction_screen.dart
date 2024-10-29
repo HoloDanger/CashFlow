@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:money_tracker/models/recurrence_frequency.dart';
+import 'package:money_tracker/models/transaction.dart';
 import 'package:money_tracker/providers/transaction_provider.dart';
 import 'package:money_tracker/providers/category_provider.dart';
-import 'package:money_tracker/models/transaction.dart';
 import 'package:uuid/uuid.dart';
 import 'package:logger/logger.dart';
 
@@ -52,6 +53,20 @@ class AddTransactionScreenState extends State<AddTransactionScreen> {
       return;
     }
 
+    RecurrenceFrequency? recurrenceFrequency;
+    if (_recurrenceFrequency != 'None') {
+      try {
+        recurrenceFrequency = RecurrenceFrequency.values.firstWhere(
+          (e) => e.toString().split('.').last == _recurrenceFrequency,
+        );
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Invalid recurrence frequency')),
+        );
+        return;
+      }
+    }
+
     final newTransaction = Transaction(
       id: const Uuid().v4(),
       amount: enteredAmount,
@@ -59,16 +74,13 @@ class AddTransactionScreenState extends State<AddTransactionScreen> {
       category: enteredCategory,
       date: enteredDate,
       formattedDate: '${enteredDate.toLocal()}'.split(' ')[0],
-      isRecurring: _recurrenceFrequency != 'None',
-      recurrenceFrequency: _recurrenceFrequency != 'None'
-          ? RecurrenceFrequency.values.firstWhere(
-              (e) => e.toString().split('.').last == _recurrenceFrequency)
-          : null,
+      isRecurring: recurrenceFrequency != null,
+      recurrenceFrequency: recurrenceFrequency,
       nextOccurrence: enteredDate,
     );
 
     Provider.of<TransactionProvider>(context, listen: false)
-        .addTransaction(newTransaction);
+        .addTransaction(newTransaction, context);
     logger.i('Submitted transaction: $newTransaction');
 
     Navigator.of(context).pop();

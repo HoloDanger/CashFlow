@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:money_tracker/models/recurrence_frequency.dart';
 import 'package:money_tracker/models/transaction.dart';
 import 'package:money_tracker/services/database_service.dart';
 

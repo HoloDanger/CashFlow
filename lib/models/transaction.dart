@@ -1,10 +1,5 @@
 import 'package:intl/intl.dart';
-
-enum RecurrenceFrequency {
-  daily,
-  weekly,
-  monthly,
-}
+import 'package:money_tracker/models/recurrence_frequency.dart';
 
 class Transaction {
   final String id;

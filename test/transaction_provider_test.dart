@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:money_tracker/models/transaction.dart';
 import 'package:money_tracker/providers/transaction_provider.dart';
@@ -7,6 +8,7 @@ import 'package:mockito/annotations.dart';
 import 'transaction_provider_test.mocks.dart';
 
 @GenerateMocks([DatabaseService])
+@GenerateMocks([BuildContext])
 void main() {
   late TransactionProvider transactionProvider;
   late MockDatabaseService mockDatabaseService;
@@ -35,7 +37,10 @@ void main() {
       when(mockDatabaseService.insertTransaction(transaction))
           .thenAnswer((_) async => {});
 
-      await transactionProvider.addTransaction(transaction);
+      // Create a mock BuildContext
+      final context = MockBuildContext();
+
+      await transactionProvider.addTransaction(transaction, context);
 
       expect(transactionProvider.transactions, contains(transaction));
       verify(mockDatabaseService.insertTransaction(transaction)).called(1);
@@ -90,8 +95,11 @@ void main() {
       when(mockDatabaseService.insertTransaction(transaction))
           .thenAnswer((_) async => {});
 
+      // Create a mock BuildContext
+      final context = MockBuildContext();
+
       // Add the transaction
-      await transactionProvider.addTransaction(transaction);
+      await transactionProvider.addTransaction(transaction, context);
 
       // Verify that the transaction was added
       expect(transactionProvider.transactions, contains(transaction));
@@ -101,7 +109,7 @@ void main() {
           .thenAnswer((_) async => 1);
 
       // Delete the transaction
-      await transactionProvider.deleteTransaction(transaction.id);
+      await transactionProvider.deleteTransaction(transaction.id, context);
 
       // Verify that the transaction was removed
       expect(transactionProvider.transactions, isNot(contains(transaction)));
@@ -185,7 +193,10 @@ void main() {
       when(mockDatabaseService.insertTransaction(transaction))
           .thenThrow(Exception('Database error'));
 
-      await transactionProvider.addTransaction(transaction);
+      // Create a mock BuildContext
+      final context = MockBuildContext();
+
+      await transactionProvider.addTransaction(transaction, context);
 
       expect(transactionProvider.transactions, isEmpty);
     });
@@ -205,7 +216,10 @@ void main() {
       when(mockDatabaseService.insertTransaction(transaction))
           .thenAnswer((_) async => {});
 
-      await transactionProvider.addTransaction(transaction);
+      // Create a mock BuildContext
+      final context = MockBuildContext();
+
+      await transactionProvider.addTransaction(transaction, context);
 
       expect(transactionProvider.transactions, contains(transaction));
       verify(mockDatabaseService.insertTransaction(transaction)).called(1);
@@ -226,7 +240,10 @@ void main() {
       when(mockDatabaseService.insertTransaction(transaction))
           .thenAnswer((_) async => {});
 
-      await transactionProvider.addTransaction(transaction);
+      // Create a mock BuildContext
+      final context = MockBuildContext();
+
+      await transactionProvider.addTransaction(transaction, context);
 
       expect(transactionProvider.transactions, contains(transaction));
       verify(mockDatabaseService.insertTransaction(transaction)).called(1);
@@ -244,7 +261,10 @@ void main() {
           nextOccurrence: DateTime.now(),
           recurrenceFrequency: RecurrenceFrequency.daily);
 
-      await transactionProvider.deleteTransaction(transaction.id);
+      // Create a mock BuildContext
+      final context = MockBuildContext();
+
+      await transactionProvider.deleteTransaction(transaction.id, context);
 
       expect(transactionProvider.transactions, isEmpty);
       verifyNever(mockDatabaseService.deleteTransaction(transaction.id));
@@ -277,10 +297,13 @@ void main() {
               nextOccurrence: DateTime.now(),
               recurrenceFrequency: RecurrenceFrequency.daily));
 
+      // Create a mock BuildContext
+      final context = MockBuildContext();
+
       for (var transaction in transactions) {
         when(mockDatabaseService.insertTransaction(transaction))
             .thenAnswer((_) async => {});
-        await transactionProvider.addTransaction(transaction);
+        await transactionProvider.addTransaction(transaction, context);
       }
 
       expect(transactionProvider.transactions.length, equals(1000));
@@ -307,7 +330,10 @@ void main() {
       when(mockDatabaseService.insertTransaction(transaction))
           .thenAnswer((_) async => {});
 
-      await transactionProvider.addTransaction(transaction);
+      // Create a mock BuildContext
+      final context = MockBuildContext();
+
+      await transactionProvider.addTransaction(transaction, context);
 
       expect(notificationCount, equals(1));
     });
