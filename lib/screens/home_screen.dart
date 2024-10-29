@@ -65,6 +65,11 @@ class HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  void _showSnackBar(String message) {
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -332,19 +337,13 @@ class HomeScreenState extends State<HomeScreen> {
   void _deleteTransaction(BuildContext context, String transactionId) {
     final transactionProvider =
         Provider.of<TransactionProvider>(context, listen: false);
-    final scaffoldMessenger = ScaffoldMessenger.of(context);
 
     transactionProvider
-        .deleteTransaction(transactionId, context)
+        .deleteTransaction(transactionId, _showSnackBar)
         .catchError((error) {
       logger.e('Error deleting transaction: $error');
       if (mounted) {
-        scaffoldMessenger.showSnackBar(
-          SnackBar(
-            content: Text('Error deleting transaction: $error'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        _showSnackBar('Error deleting transaction: $error');
       }
     });
   }

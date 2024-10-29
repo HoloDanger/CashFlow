@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:money_tracker/models/recurrence_frequency.dart';
 import 'package:money_tracker/models/transaction.dart';
 import 'package:money_tracker/providers/transaction_provider.dart';
 import 'package:money_tracker/services/database_service.dart';
@@ -8,7 +8,6 @@ import 'package:mockito/annotations.dart';
 import 'transaction_provider_test.mocks.dart';
 
 @GenerateMocks([DatabaseService])
-@GenerateMocks([BuildContext])
 void main() {
   late TransactionProvider transactionProvider;
   late MockDatabaseService mockDatabaseService;
@@ -19,28 +18,43 @@ void main() {
         TransactionProvider(databaseService: mockDatabaseService);
   });
 
+  void mockShowSnackBar(String message) {
+    // This is a mock callback function for testing purposes.
+  }
+
+  Transaction createTransaction({
+    required String id,
+    required double amount,
+    DateTime? date,
+    String? formattedDate = '',
+    String formattedAmount = '',
+    String category = '',
+    DateTime? nextOccurrence,
+    RecurrenceFrequency recurrenceFrequency = RecurrenceFrequency.daily,
+  }) {
+    return Transaction(
+      id: id,
+      amount: amount,
+      date: date ?? DateTime.now(),
+      formattedDate: formattedDate ?? '',
+      formattedAmount: formattedAmount,
+      category: category,
+      nextOccurrence: nextOccurrence ?? DateTime.now(),
+      recurrenceFrequency: recurrenceFrequency,
+    );
+  }
+
   group('TransactionProvider', () {
     test('initial transactions list is empty', () {
       expect(transactionProvider.transactions, isEmpty);
     });
 
     test('addTransaction adds a transaction and notifies listeners', () async {
-      final transaction = Transaction(
-          id: '1',
-          amount: 100.0,
-          date: DateTime.now(),
-          formattedDate: '',
-          formattedAmount: '',
-          category: '',
-          nextOccurrence: DateTime.now(),
-          recurrenceFrequency: RecurrenceFrequency.daily);
+      final transaction = createTransaction(id: '1', amount: 100.0);
       when(mockDatabaseService.insertTransaction(transaction))
           .thenAnswer((_) async => {});
 
-      // Create a mock BuildContext
-      final context = MockBuildContext();
-
-      await transactionProvider.addTransaction(transaction, context);
+      await transactionProvider.addTransaction(transaction, mockShowSnackBar);
 
       expect(transactionProvider.transactions, contains(transaction));
       verify(mockDatabaseService.insertTransaction(transaction)).called(1);
@@ -50,24 +64,8 @@ void main() {
         'fetchTransactions retrieves transactions from database and notifies listeners',
         () async {
       final transactions = [
-        Transaction(
-            id: '1',
-            amount: 100.0,
-            date: DateTime.now(),
-            formattedDate: '',
-            formattedAmount: '',
-            category: '',
-            nextOccurrence: DateTime.now(),
-            recurrenceFrequency: RecurrenceFrequency.daily),
-        Transaction(
-            id: '2',
-            amount: 200.0,
-            date: DateTime.now(),
-            formattedDate: '',
-            formattedAmount: '',
-            category: '',
-            nextOccurrence: DateTime.now(),
-            recurrenceFrequency: RecurrenceFrequency.daily),
+        createTransaction(id: '1', amount: 100.0),
+        createTransaction(id: '2', amount: 200.0),
       ];
       when(mockDatabaseService.getTransactions())
           .thenAnswer((_) async => transactions);
@@ -80,26 +78,14 @@ void main() {
 
     test('deleteTransaction removes a transaction and notifies listeners',
         () async {
-      final transaction = Transaction(
-        id: '1',
-        amount: 100.0,
-        date: DateTime.now(),
-        formattedDate: '',
-        formattedAmount: '',
-        category: '',
-        nextOccurrence: DateTime.now(),
-        recurrenceFrequency: RecurrenceFrequency.daily,
-      );
+      final transaction = createTransaction(id: '1', amount: 100.0);
 
       // Mock the insertTransaction method
       when(mockDatabaseService.insertTransaction(transaction))
           .thenAnswer((_) async => {});
 
-      // Create a mock BuildContext
-      final context = MockBuildContext();
-
       // Add the transaction
-      await transactionProvider.addTransaction(transaction, context);
+      await transactionProvider.addTransaction(transaction, mockShowSnackBar);
 
       // Verify that the transaction was added
       expect(transactionProvider.transactions, contains(transaction));
@@ -109,7 +95,8 @@ void main() {
           .thenAnswer((_) async => 1);
 
       // Delete the transaction
-      await transactionProvider.deleteTransaction(transaction.id, context);
+      await transactionProvider.deleteTransaction(
+          transaction.id, mockShowSnackBar);
 
       // Verify that the transaction was removed
       expect(transactionProvider.transactions, isNot(contains(transaction)));
@@ -118,33 +105,9 @@ void main() {
 
     test('totalExpenses calculates the total expenses correctly', () async {
       final transactions = [
-        Transaction(
-            id: '1',
-            amount: -100.0,
-            date: DateTime.now(),
-            formattedDate: '',
-            formattedAmount: '',
-            category: '',
-            nextOccurrence: DateTime.now(),
-            recurrenceFrequency: RecurrenceFrequency.daily),
-        Transaction(
-            id: '2',
-            amount: -30.0,
-            date: DateTime.now(),
-            formattedDate: '',
-            formattedAmount: '',
-            category: '',
-            nextOccurrence: DateTime.now(),
-            recurrenceFrequency: RecurrenceFrequency.daily),
-        Transaction(
-            id: '3',
-            amount: 100.0,
-            date: DateTime.now(),
-            formattedDate: '',
-            formattedAmount: '',
-            category: '',
-            nextOccurrence: DateTime.now(),
-            recurrenceFrequency: RecurrenceFrequency.daily),
+        createTransaction(id: '1', amount: -100.0),
+        createTransaction(id: '2', amount: -30.0),
+        createTransaction(id: '3', amount: 100.0),
       ];
       when(mockDatabaseService.getTransactions())
           .thenAnswer((_) async => transactions);
@@ -161,15 +124,7 @@ void main() {
     test('totalExpenses returns 0.0 when there are only income transactions',
         () async {
       final transactions = [
-        Transaction(
-            id: '1',
-            amount: 100.0,
-            date: DateTime.now(),
-            formattedDate: '',
-            formattedAmount: '',
-            category: '',
-            nextOccurrence: DateTime.now(),
-            recurrenceFrequency: RecurrenceFrequency.daily),
+        createTransaction(id: '1', amount: 100.0),
       ];
       when(mockDatabaseService.getTransactions())
           .thenAnswer((_) async => transactions);
@@ -180,23 +135,11 @@ void main() {
     });
 
     test('addTransaction handles errors gracefully', () async {
-      final transaction = Transaction(
-          id: '1',
-          amount: 100.0,
-          date: DateTime.now(),
-          formattedDate: '',
-          formattedAmount: '',
-          category: '',
-          nextOccurrence: DateTime.now(),
-          recurrenceFrequency: RecurrenceFrequency.daily);
-
+      final transaction = createTransaction(id: '1', amount: 100.0);
       when(mockDatabaseService.insertTransaction(transaction))
           .thenThrow(Exception('Database error'));
 
-      // Create a mock BuildContext
-      final context = MockBuildContext();
-
-      await transactionProvider.addTransaction(transaction, context);
+      await transactionProvider.addTransaction(transaction, mockShowSnackBar);
 
       expect(transactionProvider.transactions, isEmpty);
     });
@@ -204,22 +147,11 @@ void main() {
     test(
         'addTransaction with zero amount adds the transaction and notifies listeners',
         () async {
-      final transaction = Transaction(
-          id: '1',
-          amount: 0.0,
-          date: DateTime.now(),
-          formattedDate: '',
-          formattedAmount: '',
-          category: '',
-          nextOccurrence: DateTime.now(),
-          recurrenceFrequency: RecurrenceFrequency.daily);
+      final transaction = createTransaction(id: '1', amount: 0.0);
       when(mockDatabaseService.insertTransaction(transaction))
           .thenAnswer((_) async => {});
 
-      // Create a mock BuildContext
-      final context = MockBuildContext();
-
-      await transactionProvider.addTransaction(transaction, context);
+      await transactionProvider.addTransaction(transaction, mockShowSnackBar);
 
       expect(transactionProvider.transactions, contains(transaction));
       verify(mockDatabaseService.insertTransaction(transaction)).called(1);
@@ -228,22 +160,11 @@ void main() {
     test(
         'addTransaction with negative amount adds the transaction and notifies listeners',
         () async {
-      final transaction = Transaction(
-          id: '2',
-          amount: -50.0,
-          date: DateTime.now(),
-          formattedDate: '',
-          formattedAmount: '',
-          category: '',
-          nextOccurrence: DateTime.now(),
-          recurrenceFrequency: RecurrenceFrequency.daily);
+      final transaction = createTransaction(id: '2', amount: -50.0);
       when(mockDatabaseService.insertTransaction(transaction))
           .thenAnswer((_) async => {});
 
-      // Create a mock BuildContext
-      final context = MockBuildContext();
-
-      await transactionProvider.addTransaction(transaction, context);
+      await transactionProvider.addTransaction(transaction, mockShowSnackBar);
 
       expect(transactionProvider.transactions, contains(transaction));
       verify(mockDatabaseService.insertTransaction(transaction)).called(1);
@@ -251,20 +172,10 @@ void main() {
 
     test('deleteTransaction handles non-existent transaction gracefully',
         () async {
-      final transaction = Transaction(
-          id: '3',
-          amount: 100.0,
-          date: DateTime.now(),
-          formattedDate: '',
-          formattedAmount: '',
-          category: '',
-          nextOccurrence: DateTime.now(),
-          recurrenceFrequency: RecurrenceFrequency.daily);
+      final transaction = createTransaction(id: '3', amount: 100.0);
 
-      // Create a mock BuildContext
-      final context = MockBuildContext();
-
-      await transactionProvider.deleteTransaction(transaction.id, context);
+      await transactionProvider.deleteTransaction(
+          transaction.id, mockShowSnackBar);
 
       expect(transactionProvider.transactions, isEmpty);
       verifyNever(mockDatabaseService.deleteTransaction(transaction.id));
@@ -286,24 +197,14 @@ void main() {
 
     test('add a large number of transactions', () async {
       final transactions = List.generate(
-          1000,
-          (index) => Transaction(
-              id: '$index',
-              amount: index.toDouble(),
-              date: DateTime.now(),
-              formattedDate: '',
-              formattedAmount: '',
-              category: '',
-              nextOccurrence: DateTime.now(),
-              recurrenceFrequency: RecurrenceFrequency.daily));
-
-      // Create a mock BuildContext
-      final context = MockBuildContext();
+        1000,
+        (index) => createTransaction(id: '$index', amount: index.toDouble()),
+      );
 
       for (var transaction in transactions) {
         when(mockDatabaseService.insertTransaction(transaction))
             .thenAnswer((_) async => {});
-        await transactionProvider.addTransaction(transaction, context);
+        await transactionProvider.addTransaction(transaction, mockShowSnackBar);
       }
 
       expect(transactionProvider.transactions.length, equals(1000));
@@ -318,22 +219,11 @@ void main() {
         notificationCount++;
       });
 
-      final transaction = Transaction(
-          id: '4',
-          amount: 100.0,
-          date: DateTime.now(),
-          formattedDate: '',
-          formattedAmount: '',
-          category: '',
-          nextOccurrence: DateTime.now(),
-          recurrenceFrequency: RecurrenceFrequency.daily);
+      final transaction = createTransaction(id: '4', amount: 100.0);
       when(mockDatabaseService.insertTransaction(transaction))
           .thenAnswer((_) async => {});
 
-      // Create a mock BuildContext
-      final context = MockBuildContext();
-
-      await transactionProvider.addTransaction(transaction, context);
+      await transactionProvider.addTransaction(transaction, mockShowSnackBar);
 
       expect(notificationCount, equals(1));
     });

@@ -4,6 +4,7 @@ import 'package:money_tracker/models/recurrence_frequency.dart';
 import 'package:money_tracker/models/transaction.dart';
 import 'package:money_tracker/providers/transaction_provider.dart';
 import 'package:money_tracker/providers/category_provider.dart';
+import 'package:money_tracker/services/recurring_transaction_service.dart';
 import 'package:uuid/uuid.dart';
 import 'package:logger/logger.dart';
 
@@ -22,6 +23,13 @@ class AddTransactionScreenState extends State<AddTransactionScreen> {
   DateTime? _selectedDate;
   String _recurrenceFrequency = 'None';
   final Logger logger = Logger();
+  final RecurringTransactionService _recurringTransactionService =
+      RecurringTransactionService();
+
+  void _showSnackBar(String message) {
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
+  }
 
   Future<void> _selectDate() async {
     final DateTime? pickedDate = await showDatePicker(
@@ -57,7 +65,9 @@ class AddTransactionScreenState extends State<AddTransactionScreen> {
     if (_recurrenceFrequency != 'None') {
       try {
         recurrenceFrequency = RecurrenceFrequency.values.firstWhere(
-          (e) => e.toString().split('.').last == _recurrenceFrequency,
+          (e) =>
+              e.toString().split('.').last.toLowerCase() ==
+              _recurrenceFrequency.toLowerCase(),
         );
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -79,9 +89,15 @@ class AddTransactionScreenState extends State<AddTransactionScreen> {
       nextOccurrence: enteredDate,
     );
 
-    Provider.of<TransactionProvider>(context, listen: false)
-        .addTransaction(newTransaction, context);
-    logger.i('Submitted transaction: $newTransaction');
+    if (newTransaction.isRecurring &&
+        newTransaction.recurrenceFrequency != null) {
+      _recurringTransactionService
+          .scheduleRecurringTransactions([newTransaction]);
+    } else {
+      Provider.of<TransactionProvider>(context, listen: false)
+          .addTransaction(newTransaction, _showSnackBar);
+      logger.i('Submitted transaction: $newTransaction');
+    }
 
     Navigator.of(context).pop();
   }
