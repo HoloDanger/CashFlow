@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:logger/logger.dart';
 
+/// A provider class for managing budgets and expenses.
 class BudgetProvider with ChangeNotifier {
   final Logger logger = Logger();
   final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
@@ -62,11 +63,13 @@ class BudgetProvider with ChangeNotifier {
   }
 
   // Budget Management Methods
+  /// Sets the monthly budget.
   void setMonthlyBudget(double budget) {
     _monthlyBudget = budget;
     notifyListeners();
   }
 
+  /// Toggles global notifications.
   void toggleGlobalNotification(bool value) {
     _globalNotify = value;
     notifyListeners();
@@ -74,6 +77,7 @@ class BudgetProvider with ChangeNotifier {
 
   bool get globalNotify => _globalNotify;
 
+  /// Adds a new budget category.
   void addBudgetCategory(
       String categoryName, double amount, bool notifyWhenExceeded) {
     if (!_budgetCategories.containsKey(categoryName)) {
@@ -83,9 +87,14 @@ class BudgetProvider with ChangeNotifier {
           notifyWhenExceeded: notifyWhenExceeded);
       _categoryExpenses[categoryName] = 0.0;
       notifyListeners();
+    } else {
+      logger.w('Category already exists: $categoryName');
+      throw ArgumentError(
+          'Category already exists. Please provide a unique category name.');
     }
   }
 
+  /// Edits an existing budget category.
   void editBudgetCategory(String oldCategoryName, String newCategoryName,
       double newAmount, bool notifyWhenExceeded) {
     if (_budgetCategories.containsKey(oldCategoryName)) {
@@ -97,16 +106,28 @@ class BudgetProvider with ChangeNotifier {
           _categoryExpenses.remove(oldCategoryName) ?? 0.0;
       _budgetCategories.remove(oldCategoryName);
       notifyListeners();
+    } else {
+      logger.e('Category not found: $oldCategoryName');
+      throw ArgumentError(
+          'Category not found. Please provide a valid category name.');
     }
   }
 
+  /// Deletes a budget category.
   void deleteBudgetCategory(String category) {
-    _budgetCategories.remove(category);
-    _categoryExpenses.remove(category);
-    notifyListeners();
+    if (_budgetCategories.containsKey(category)) {
+      _budgetCategories.remove(category);
+      _categoryExpenses.remove(category);
+      notifyListeners();
+    } else {
+      logger.e('Category not found: $category');
+      throw ArgumentError(
+          'Category not found. Please provide a valid category name.');
+    }
   }
 
   // Expense Management
+  /// Adds an expense to a category.
   void addExpense(String category, double amount) {
     if (_budgetCategories.containsKey(category)) {
       _categoryExpenses[category] =
@@ -117,6 +138,7 @@ class BudgetProvider with ChangeNotifier {
   }
 
   // Budget Checking
+  /// Updates and checks budgets.
   void updateAndCheckBudgets() {
     _categoryExpenses.forEach((category, expense) {
       checkCategoryBudgetExceeded(category);
@@ -124,6 +146,7 @@ class BudgetProvider with ChangeNotifier {
     _checkBudgetExceeded();
   }
 
+  /// Checks if a category budgets is exceeded.
   void checkCategoryBudgetExceeded(String category) {
     var categoryBudget = _budgetCategories[category];
     if (categoryBudget != null &&
@@ -133,6 +156,7 @@ class BudgetProvider with ChangeNotifier {
     }
   }
 
+  /// Checks if the total budget is exceeded.
   void _checkBudgetExceeded() {
     if (totalMonthlyExpenses > _monthlyBudget) {
       notifyListeners();
@@ -141,6 +165,7 @@ class BudgetProvider with ChangeNotifier {
   }
 
   // Notification Methods
+  /// Sends a notification when the total budget is exceeded.
   Future<void> sendBudgetExceededNotification() async {
     if (_globalNotify) {
       final notificationDetails = _getAndroidNotificationDetails(
@@ -150,6 +175,7 @@ class BudgetProvider with ChangeNotifier {
     }
   }
 
+  /// Sends a notification when a category budget is exceeded.
   Future<void> sendCategoryBudgetExceededNotification(String category) async {
     if (_globalNotify) {
       final notificationDetails = _getAndroidNotificationDetails(
@@ -163,6 +189,7 @@ class BudgetProvider with ChangeNotifier {
     }
   }
 
+  /// Gets Android notification details.
   NotificationDetails _getAndroidNotificationDetails(String id, String name) {
     return NotificationDetails(
         android: AndroidNotificationDetails(id, name,
@@ -171,6 +198,7 @@ class BudgetProvider with ChangeNotifier {
             showWhen: false));
   }
 
+  /// Shows a notification.
   Future<void> _showNotification(
       int id, String title, String body, NotificationDetails details,
       {String? payload}) async {
@@ -179,17 +207,21 @@ class BudgetProvider with ChangeNotifier {
   }
 
   // Helper Methods
+  /// Calculates the total monthly expenses.
   double _calculateTotalMonthlyExpenses() {
     return _categoryExpenses.values.fold(0.0, (sum, expense) => sum + expense);
   }
 
+  /// Checks if the total expenses are within the budget.
   bool isWithinBudget() => totalMonthlyExpenses <= _monthlyBudget;
 
   // Notification Callbacks
+  /// Handles notification selection.
   Future<void> onSelectNotification(String payload) async {
     debugPrint('Notification payload: $payload');
   }
 
+  /// Handles received local notifications.
   void onDidReceiveLocalNotification(
       int id, String? title, String? body, String? payload) {
     logger.d(
@@ -197,6 +229,7 @@ class BudgetProvider with ChangeNotifier {
   }
 }
 
+/// A class representing a budget category.
 class BudgetCategory {
   String name;
   double amount;

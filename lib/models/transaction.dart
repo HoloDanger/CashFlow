@@ -1,15 +1,25 @@
 import 'package:intl/intl.dart';
 import 'package:money_tracker/models/recurrence_frequency.dart';
 
+/// Represents a financial transaction.
 class Transaction {
+  // Unique identifier for the transaction.
   final String id;
+  // Amount of the transaction.
   final double amount;
+  // Category of the transaction.
   final String category;
+  // Date of the transaction.
   final DateTime date;
+  // Formatted date string for display.
   final String formattedDate;
+  // Formatted amount string for display.
   final String formattedAmount;
+  // Indicates if the transaction is recurring.
   final bool isRecurring;
-  final RecurrenceFrequency? recurrenceFrequency; // daily, weekly, monthly
+  // Frequency of recurrence if the transaction is recurring.
+  final RecurrenceFrequency? recurrenceFrequency;
+  // Next occurrence of the recurring transaction.
   final DateTime nextOccurrence;
 
   Transaction({
@@ -57,8 +67,11 @@ class Transaction {
       'amount': amount,
       'category': category,
       'date': date.toIso8601String(),
+      'formattedDate': formattedDate,
+      'formattedAmount': formattedAmount,
       'isRecurring': isRecurring ? 1 : 0,
-      'recurrenceFrequency': recurrenceFrequency,
+      'recurrenceFrequency': recurrenceFrequency?.toString().split('.').last,
+      'nextOccurrence': nextOccurrence.toIso8601String(),
     };
   }
 

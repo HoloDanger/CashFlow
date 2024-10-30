@@ -108,16 +108,39 @@ class AddTransactionScreenState extends State<AddTransactionScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Add Transaction',
-            style: TextStyle(color: Colors.white)),
-        backgroundColor: Colors.teal,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          color: Colors.white,
+          icon: const Icon(Icons.menu, color: Colors.white),
           onPressed: () {
-            Navigator.of(context).pop();
+            // Handle drawer open
           },
         ),
+        title: Text(
+          'Add Transaction',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontFamily: 'Fredoka',
+            fontSize: 24,
+            fontVariations: <FontVariation>[FontVariation('wght', 700)],
+            shadows: <Shadow>[
+              Shadow(
+                offset: Offset(-2.0, 2.0),
+                blurRadius: 4.0,
+                color: Colors.black.withOpacity(0.3),
+              ),
+            ],
+          ),
+        ),
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFF4CAD73), Color(0xFFAABD36)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -136,6 +159,10 @@ class AddTransactionScreenState extends State<AddTransactionScreen> {
                     prefixIcon: Icon(Icons.attach_money),
                   ),
                   keyboardType: TextInputType.number,
+                  style: TextStyle(
+                    fontFamily: 'Fredoka',
+                    fontSize: 16,
+                  ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Amount field cannot be empty.';
@@ -159,7 +186,13 @@ class AddTransactionScreenState extends State<AddTransactionScreen> {
                   items: categoryProvider.categories
                       .map((category) => DropdownMenuItem(
                             value: category,
-                            child: Text(category),
+                            child: Text(
+                              category,
+                              style: TextStyle(
+                                fontFamily: 'Fredoka',
+                                fontSize: 16,
+                              ),
+                            ),
                           ))
                       .toList(),
                   onChanged: (newValue) {
@@ -185,6 +218,10 @@ class AddTransactionScreenState extends State<AddTransactionScreen> {
                   ),
                   readOnly: true,
                   onTap: _selectDate,
+                  style: TextStyle(
+                    fontFamily: 'Fredoka',
+                    fontSize: 16,
+                  ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Date is required.';
@@ -202,10 +239,46 @@ class AddTransactionScreenState extends State<AddTransactionScreen> {
                     prefixIcon: Icon(Icons.repeat),
                   ),
                   items: const [
-                    DropdownMenuItem(value: 'None', child: Text('None')),
-                    DropdownMenuItem(value: 'Daily', child: Text('Daily')),
-                    DropdownMenuItem(value: 'Weekly', child: Text('Weekly')),
-                    DropdownMenuItem(value: 'Monthly', child: Text('Monthly')),
+                    DropdownMenuItem(
+                      value: 'None',
+                      child: Text(
+                        'None',
+                        style: TextStyle(
+                          fontFamily: 'Fredoka',
+                          fontSize: 16,
+                        ),
+                      ),
+                    ),
+                    DropdownMenuItem(
+                      value: 'Daily',
+                      child: Text(
+                        'Daily',
+                        style: TextStyle(
+                          fontFamily: 'Fredoka',
+                          fontSize: 16,
+                        ),
+                      ),
+                    ),
+                    DropdownMenuItem(
+                      value: 'Weekly',
+                      child: Text(
+                        'Weekly',
+                        style: TextStyle(
+                          fontFamily: 'Fredoka',
+                          fontSize: 16,
+                        ),
+                      ),
+                    ),
+                    DropdownMenuItem(
+                      value: 'Monthly',
+                      child: Text(
+                        'Monthly',
+                        style: TextStyle(
+                          fontFamily: 'Fredoka',
+                          fontSize: 16,
+                        ),
+                      ),
+                    ),
                   ],
                   onChanged: (newValue) {
                     setState(() {
@@ -219,7 +292,7 @@ class AddTransactionScreenState extends State<AddTransactionScreen> {
                       ? _submitData
                       : null,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.teal,
+                    backgroundColor: Color(0xFF4CAF50),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -228,7 +301,11 @@ class AddTransactionScreenState extends State<AddTransactionScreen> {
                   ),
                   child: const Text(
                     'Submit',
-                    style: TextStyle(fontSize: 16, color: Colors.white),
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.white,
+                      fontFamily: 'Fredoka',
+                    ),
                   ),
                 ),
               ],

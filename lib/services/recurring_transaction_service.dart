@@ -1,11 +1,15 @@
 import 'dart:async';
+import 'package:logger/logger.dart';
 import 'package:money_tracker/models/recurrence_frequency.dart';
 import 'package:money_tracker/models/transaction.dart';
 import 'package:money_tracker/services/database_service.dart';
 
+/// A service class for managing recurring transactions.
 class RecurringTransactionService {
   final DatabaseService databaseService = DatabaseService();
+  final Logger logger = Logger();
 
+  /// Schedules recurring transaction.
   void scheduleRecurringTransactions(List<Transaction> transactions) {
     for (var transaction in transactions) {
       if (transaction.isRecurring && transaction.recurrenceFrequency != null) {
@@ -14,6 +18,7 @@ class RecurringTransactionService {
     }
   }
 
+  /// Schedules a single recurring transaction
   void _scheduleTransaction(Transaction transaction) {
     Duration interval;
     switch (transaction.recurrenceFrequency) {
@@ -30,25 +35,31 @@ class RecurringTransactionService {
         return;
     }
 
-    Timer.periodic(interval, (timer) {
-      // Logic to create a new transaction based on the recurring transaction
-      createTransaction(
-        id: generateNewId(), // Implement this function to generate a unique ID
-        amount: transaction.amount,
-        category: transaction.category,
-        date: DateTime.now(),
-        formattedDate: formatDate(
-            DateTime.now()), // Implement this function to format the date
-        formattedAmount: formatAmount(
-            transaction.amount), // Implement this function to format the amount
-        isRecurring: transaction.isRecurring,
-        recurrenceFrequency: transaction.recurrenceFrequency,
-        nextOccurrence: calculateNextOccurrence(
-            DateTime.now(), transaction.recurrenceFrequency!),
-      );
-    });
+    try {
+      Timer.periodic(interval, (timer) {
+        // Logic to create a new transaction based on the recurring transaction
+        createTransaction(
+          id: generateNewId(), // Implement this function to generate a unique ID
+          amount: transaction.amount,
+          category: transaction.category,
+          date: DateTime.now(),
+          formattedDate: formatDate(
+              DateTime.now()), // Implement this function to format the date
+          formattedAmount: formatAmount(transaction
+              .amount), // Implement this function to format the amount
+          isRecurring: transaction.isRecurring,
+          recurrenceFrequency: transaction.recurrenceFrequency,
+          nextOccurrence: calculateNextOccurrence(
+              DateTime.now(), transaction.recurrenceFrequency!),
+        );
+      });
+    } catch (e) {
+      // Handle scheduling error
+      logger.e('Error scheduling transaction: $e');
+    }
   }
 
+  /// Creates a new transaction.
   void createTransaction({
     required String id,
     required double amount,
@@ -72,8 +83,13 @@ class RecurringTransactionService {
       nextOccurrence: nextOccurrence,
     );
 
-    // Save the transaction to the database or state
-    databaseService.insertTransaction(transaction);
+    try {
+      // Save the transaction to the database or state
+      databaseService.insertTransaction(transaction);
+    } catch (e) {
+      // Handle database error
+      logger.e('Error inserting transaction: $e');
+    }
   }
 
   String generateNewId() {
@@ -81,16 +97,19 @@ class RecurringTransactionService {
     return DateTime.now().millisecondsSinceEpoch.toString();
   }
 
+  /// Generates a unique ID for each transaction.
   String formatDate(DateTime date) {
     // Implement a method to format the date as a string
     return date.toIso8601String();
   }
 
+  /// Formats the amount as a string.
   String formatAmount(double amount) {
     // Implement a method to format the amount as a string
     return amount.toStringAsFixed(2);
   }
 
+  /// Calculates the next occurrence date based on the recurrence frequency.
   DateTime calculateNextOccurrence(
       DateTime date, RecurrenceFrequency recurrenceFrequency) {
     switch (recurrenceFrequency) {

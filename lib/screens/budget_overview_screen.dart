@@ -19,17 +19,46 @@ class BudgetOverviewScreenState extends State<BudgetOverviewScreen> {
   }
 
   Future<void> _fetchBudgetData() async {
-    // Here you might want to fetch initial data or perform any setup if needed
-    // For now, we'll assume the data is already available through the provider
+    // Fetch initial data if needed
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Budget Overview',
-            style: TextStyle(color: Colors.white)),
-        backgroundColor: Colors.teal,
+        leading: IconButton(
+          icon: const Icon(Icons.menu, color: Colors.white),
+          onPressed: () {
+            // Handle drawer open
+          },
+        ),
+        title: Text(
+          'Budget Overview',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontFamily: 'Fredoka',
+            fontSize: 24,
+            fontVariations: <FontVariation>[FontVariation('wght', 700)],
+            shadows: <Shadow>[
+              Shadow(
+                offset: Offset(-2.0, 2.0),
+                blurRadius: 4.0,
+                color: Colors.black.withOpacity(0.3),
+              ),
+            ],
+          ),
+        ),
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFF4CAD73), Color(0xFFAABD36)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: FutureBuilder(
         future: _fetchBudgetDataFuture,
@@ -38,7 +67,14 @@ class BudgetOverviewScreenState extends State<BudgetOverviewScreen> {
             return const Center(child: CircularProgressIndicator());
           } else if (snapshot.hasError) {
             return Center(
-              child: Text('Error: ${snapshot.error}'),
+              child: Text(
+                'Error: ${snapshot.error}',
+                style: TextStyle(
+                  fontFamily: 'Fredoka',
+                  fontSize: 16,
+                  color: Colors.redAccent,
+                ),
+              ),
             );
           } else {
             return Consumer<BudgetProvider>(
@@ -73,7 +109,7 @@ class BudgetOverviewScreenState extends State<BudgetOverviewScreen> {
                             : Colors.red,
                       ),
                       const SizedBox(height: 20),
-                      // Optionally, add more details or a list of categories here
+                      // Categories
                       Expanded(
                         child: ListView.builder(
                           itemCount: budgetProvider.budgetCategories.length,
@@ -83,11 +119,34 @@ class BudgetOverviewScreenState extends State<BudgetOverviewScreen> {
                                 .elementAt(index);
                             var category =
                                 budgetProvider.budgetCategories[categoryName];
-                            return ListTile(
-                              title:
-                                  Text(category!.name), // Use the name property
-                              trailing: Text(
-                                '₱${(budgetProvider.categoryExpenses[categoryName]?.toStringAsFixed(2) ?? '0.00')}',
+                            return Card(
+                              elevation: 8,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: ListTile(
+                                leading: CircleAvatar(
+                                  backgroundColor: Colors.teal[100],
+                                  child: Icon(
+                                    Icons.category,
+                                    color: Colors.teal[600],
+                                  ),
+                                ),
+                                title: Text(
+                                  category!.name,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontFamily: 'Fredoka',
+                                    fontSize: 16,
+                                  ),
+                                ),
+                                trailing: Text(
+                                  '\u20B1${(budgetProvider.categoryExpenses[categoryName]?.toStringAsFixed(2) ?? '0.00')}',
+                                  style: TextStyle(
+                                    color: Colors.grey[700],
+                                    fontSize: 14,
+                                  ),
+                                ),
                               ),
                             );
                           },
@@ -106,22 +165,38 @@ class BudgetOverviewScreenState extends State<BudgetOverviewScreen> {
 
   Widget _buildBudgetCard(String title, String value, Color color) {
     return Card(
-      elevation: 4,
-      child: Padding(
+      elevation: 8,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFF4CAD73), Color(0xFFAABD36)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(12),
+        ),
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
             Text(
               title,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                fontFamily: 'Fredoka',
+                color: Colors.white,
+              ),
             ),
             const SizedBox(height: 8),
             Text(
-              '₱$value',
+              '\u20B1$value',
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
-                color: color,
+                color: Colors.white,
               ),
             ),
           ],

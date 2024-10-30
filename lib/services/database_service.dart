@@ -25,11 +25,11 @@ class DatabaseService {
     return _database!;
   }
 
-  // Initialize the database
+  // Initialize the database with versioning
   Future<Database> _initDB() async {
     try {
       final dbPath = await getDatabasesPath();
-      _logger.i('Initializing database at path: $dbPath');
+      _logger.i('Initializing database');
       return await openDatabase(
         join(dbPath, 'cashflow.db'),
         onCreate: (db, version) {
@@ -38,12 +38,31 @@ class DatabaseService {
             'CREATE TABLE transactions(id TEXT PRIMARY KEY, amount REAL, category TEXT, date TEXT)',
           );
         },
-        version: 1,
+        onUpgrade: (db, oldVersion, newVersion) {
+          _logger
+              .i('Upgrading database from version $oldVersion to $newVersion');
+          migrate(db, oldVersion, newVersion);
+        },
+        version: 2,
       );
     } catch (e) {
       _logger.e('Error during database initialization: $e');
       rethrow;
     }
+  }
+
+  // Migration logic
+  Future<void> migrate(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      await db.execute('ALTER TABLE transactions ADD COLUMN notes TEXT');
+      _logger
+          .i('Migrated to version 2: Added notes column to transactions table');
+    }
+  }
+
+  void _handleDatabaseError(String message, Object error) {
+    _logger.e('$message: $error');
+    throw my_exceptions.DatabaseException(message);
   }
 
   // Retrieve all transaction
@@ -59,53 +78,59 @@ class DatabaseService {
       );
       return maps.map((map) => my_model.Transaction.fromMap(map)).toList();
     } catch (e) {
-      _logger.e('Failed to fetch transactions: $e');
-      throw my_exceptions.DatabaseException('Failed to fetch transactions');
+      _handleDatabaseError('Failed to fetch transactions', e);
+      return [];
     }
   }
 
-  // Insert or replace a transaction
+  // Insert or replace a transaction within a transaction
   Future<void> insertTransaction(my_model.Transaction transaction) async {
     final db = await _db;
-    try {
-      await db.insert(
-        'transactions',
-        transaction.toMap(),
-        conflictAlgorithm: ConflictAlgorithm.replace,
-      );
-    } catch (e) {
-      _logger.e('Failed to insert transaction: $e');
-      throw my_exceptions.DatabaseException('Failed to insert transaction');
-    }
+    await db.transaction((txn) async {
+      try {
+        await txn.insert(
+          'transactions',
+          transaction.toMap(),
+          conflictAlgorithm: ConflictAlgorithm.replace,
+        );
+      } catch (e) {
+        _logger.e('Failed to insert transaction: $e');
+        throw my_exceptions.DatabaseException('Failed to insert transaction');
+      }
+    });
   }
 
   // Update an existing transaction
   Future<void> updateTransaction(my_model.Transaction transaction) async {
     final db = await _db;
-    try {
-      await db.update(
-        'transactions',
-        transaction.toMap(),
-        where: 'id = ?',
-        whereArgs: [transaction.id],
-        conflictAlgorithm: ConflictAlgorithm.replace,
-      );
-      _logger.i('Updated transaction: ${transaction.id}');
-    } catch (e) {
-      _logger.e('Failed to update transaction: $e');
-      my_exceptions.DatabaseException('Failed to update transaction');
-    }
+    await db.transaction((txn) async {
+      try {
+        await txn.update(
+          'transactions',
+          transaction.toMap(),
+          where: 'id = ?',
+          whereArgs: [transaction.id],
+          conflictAlgorithm: ConflictAlgorithm.replace,
+        );
+        _logger.i('Updated transaction: ${transaction.id}');
+      } catch (e) {
+        _handleDatabaseError('Failed to insert transaction', e);
+      }
+    });
   }
 
   // Delete a transaction by its ID
   Future<int> deleteTransaction(String id) async {
     final db = await _db;
-    try {
-      return await db.delete('transactions', where: 'id = ?', whereArgs: [id]);
-    } catch (e) {
-      _logger.e('Failed to delete transaction: $e');
-      throw my_exceptions.DatabaseException('Failed to delete transaction');
-    }
+    return await db.transaction((txn) async {
+      try {
+        return await db
+            .delete('transactions', where: 'id = ?', whereArgs: [id]);
+      } catch (e) {
+        _logger.e('Failed to delete transaction: $e');
+        throw my_exceptions.DatabaseException('Failed to delete transaction');
+      }
+    });
   }
 
   // Close the database

@@ -25,10 +25,13 @@ void main() {
     final databaseService = DatabaseService();
     final recurringTransactionService = RecurringTransactionService();
 
+    // Set up a custom error handler for Flutter framework errors
     FlutterError.onError = (FlutterErrorDetails details) {
       logger.e(
         'Flutter error: ${details.exceptionAsString()}\n${details.stack}',
       );
+      // Optionally, send the error to a monitoring service
+      // sendErrorToMonitoringService(details.exception, details.stack);
     };
 
     // Fetch existing transactions from the database
@@ -40,6 +43,7 @@ void main() {
   }, (error, stackTrace) {
     logger.e('Uncaught asynchronous error: $error\n$stackTrace');
     // Optionally, send the error to a monitoring service
+    // sendErrorToMonitoringService(error, stackTrace);
   });
 }
 
@@ -66,6 +70,14 @@ class MyApp extends StatelessWidget {
         title: 'CashFlow - Money Tracker',
         theme: ThemeData(
           primarySwatch: Colors.green,
+          hintColor: Colors.amber,
+          textTheme: TextTheme(
+            displayLarge:
+                TextStyle(fontSize: 24.0, fontWeight: FontWeight.bold),
+            bodyLarge: TextStyle(fontSize: 14.0),
+          ),
+          buttonTheme: ButtonThemeData(
+              buttonColor: Colors.green, textTheme: ButtonTextTheme.primary),
         ),
         home: const HomeScreen(),
       ),
