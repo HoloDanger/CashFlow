@@ -35,7 +35,17 @@ class DatabaseService {
         onCreate: (db, version) {
           _logger.i('Creating table at version $version');
           return db.execute(
-            'CREATE TABLE transactions(id TEXT PRIMARY KEY, amount REAL, category TEXT, date TEXT)',
+            '''CREATE TABLE transactions(
+              id TEXT PRIMARY KEY, 
+              amount REAL, 
+              category TEXT, 
+              date TEXT,
+              formattedDate TEXT,
+              isRecurring INTEGER,
+              recurrenceFrequency TEXT,
+              nextOccurrence TEXT
+            )
+            ''',
           );
         },
         onUpgrade: (db, oldVersion, newVersion) {
@@ -43,7 +53,7 @@ class DatabaseService {
               .i('Upgrading database from version $oldVersion to $newVersion');
           migrate(db, oldVersion, newVersion);
         },
-        version: 2,
+        version: 3,
       );
     } catch (e) {
       _logger.e('Error during database initialization: $e');
@@ -57,6 +67,36 @@ class DatabaseService {
       await db.execute('ALTER TABLE transactions ADD COLUMN notes TEXT');
       _logger
           .i('Migrated to version 2: Added notes column to transactions table');
+    }
+    if (oldVersion < 3) {
+      final existingColumns =
+          await db.rawQuery('PRAGMA table_info(transactions)');
+      final columnNames =
+          existingColumns.map((col) => col['name'] as String).toList();
+
+      if (!columnNames.contains('formattedDate')) {
+        await db
+            .execute('ALTER TABLE transactions ADD COLUMN formattedDate TEXT');
+      }
+      if (!columnNames.contains('formattedAmount')) {
+        await db.execute(
+            'ALTER TABLE transactions ADD COLUMN formattedAmount TEXT');
+      }
+      if (!columnNames.contains('isRecurring')) {
+        await db
+            .execute('ALTER TABLE transactions ADD COLUMN isRecurring INTEGER');
+      }
+      if (!columnNames.contains('recurrenceFrequency')) {
+        await db.execute(
+            'ALTER TABLE transactions ADD COLUMN recurrenceFrequency TEXT');
+      }
+      if (!columnNames.contains('nextOccurrence')) {
+        await db
+            .execute('ALTER TABLE transactions ADD COLUMN nextOccurrence TEXT');
+      }
+
+      _logger.i(
+          'Migrated to version 3: Added multiple columns to transactions table');
     }
   }
 
@@ -124,7 +164,7 @@ class DatabaseService {
     final db = await _db;
     return await db.transaction((txn) async {
       try {
-        return await db
+        return await txn
             .delete('transactions', where: 'id = ?', whereArgs: [id]);
       } catch (e) {
         _logger.e('Failed to delete transaction: $e');
