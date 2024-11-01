@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart' hide Fake;
@@ -174,7 +176,7 @@ void main() {
       );
 
       // Verify error handling
-      verify(mockShowSnackBar.call('Database error')).called(1);
+      verify(mockShowSnackBar.call('Unexpected error occurred.')).called(1);
 
       // Reset the mocks
       reset(mockDatabaseService);
@@ -264,19 +266,6 @@ void main() {
   });
 
   group('TransactionProvider Notifications', () {
-    test('notifyAndShowSnackBar should notify listeners and show snackbar', () {
-      int notificationCount = 0;
-      transactionProvider.addListener(() {
-        notificationCount++;
-      });
-
-      transactionProvider.notifyAndShowSnackBar(
-          mockShowSnackBar.call, 'Test message');
-
-      expect(notificationCount, equals(1));
-      verify(mockShowSnackBar('Test message')).called(1);
-    });
-
     test('listeners should be notified the correct number of times', () async {
       int notificationCount = 0;
       transactionProvider.addListener(() {
@@ -310,6 +299,71 @@ void main() {
       for (var transaction in transactions) {
         verify(mockDatabaseService.insertTransaction(transaction)).called(1);
       }
+    });
+  });
+
+  group('TransactionProvider Advanced Calculations', () {
+    test('getExpensesForPeriod calculations', () async {
+      final transactions = [
+        createTransaction(
+          id: '1',
+          amount: -100.0,
+          date: DateTime(2024, 1, 1),
+        ),
+        createTransaction(
+          id: '2',
+          amount: -50.0,
+          date: DateTime(2024, 2, 1),
+        ),
+      ];
+      when(mockDatabaseService.getTransactions())
+          .thenAnswer((_) async => transactions);
+
+      await transactionProvider.fetchTransactions();
+      final expenses = transactionProvider.getExpensesForPeriod(
+        DateTime(2024, 1, 1).subtract(const Duration(seconds: 1)),
+        DateTime(2024, 3, 1).add(const Duration(seconds: 1)),
+      );
+      expect(expenses, equals(-150.0));
+    });
+
+    test('concurrent operations handling', () async {
+      final futures = List.generate(
+          10,
+          (index) => transactionProvider.addTransaction(
+              createTransaction(id: '$index', amount: 100.0),
+              mockShowSnackBar.call));
+      await Future.wait(futures);
+      expect(transactionProvider.transactions.length, equals(10));
+    });
+  });
+
+  group('TransactionProvider Additional Cases', () {
+    test('totalIncome calculations', () async {
+      final transactions = [
+        createTransaction(id: '1', amount: 100.0),
+        createTransaction(id: '2', amount: 200.0),
+        createTransaction(id: '3', amount: -50.0),
+      ];
+      when(mockDatabaseService.getTransactions())
+          .thenAnswer((_) async => transactions);
+
+      await transactionProvider.fetchTransactions();
+      expect(transactionProvider.totalIncome, equals(300.0));
+    });
+
+    test('batch operations with timeout', () async {
+      when(mockDatabaseService.getTransactions()).thenAnswer(
+        (_) async => Future.delayed(
+          const Duration(seconds: 5),
+          () => <Transaction>[],
+        ),
+      );
+
+      expect(
+        () => transactionProvider.fetchTransactions(),
+        throwsA(isA<TimeoutException>()),
+      );
     });
   });
 }

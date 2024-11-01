@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:logger/logger.dart';
 import 'package:money_tracker/models/transaction.dart';
@@ -16,13 +18,14 @@ class TransactionProvider with ChangeNotifier {
   final Map<String, Transaction> _transactionMap = {};
 
   final DatabaseService _databaseService;
-  final Logger logger = Logger();
+  final Logger _logger = Logger();
 
   /// Constructs a [TransactionProvider] with the given [DatabaseService].
   ///
   /// The [databaseService] parameter is required to perform database operations.
-  TransactionProvider({required DatabaseService databaseService})
-      : _databaseService = databaseService;
+  TransactionProvider({
+    required DatabaseService databaseService,
+  }) : _databaseService = databaseService;
 
   /// Returns an unmodifiable list of transactions to prevent external modification.
   List<Transaction> get transactions => List.unmodifiable(_transactions);
@@ -31,7 +34,7 @@ class TransactionProvider with ChangeNotifier {
   ///
   /// The [showSnackBarCallback] is a function that displays the snackbar,
   /// and [message] is the text to be displayed in the snackbar.
-  void showSnackBar(Function(String) showSnackBarCallback, String message) {
+  void _showSnackBar(Function(String) showSnackBarCallback, String message) {
     showSnackBarCallback(message);
   }
 
@@ -39,8 +42,8 @@ class TransactionProvider with ChangeNotifier {
   ///
   /// The [message] parameter is a description of the error,
   /// and [error] is the error object.
-  void _logError(String message, Object error) {
-    logger.e('$message: $error');
+  void logError(String message, Object error) {
+    _logger.e('$message: $error');
   }
 
   /// Handles errors by logging them and showing a snackbar with a user-friendly message.
@@ -48,10 +51,10 @@ class TransactionProvider with ChangeNotifier {
   /// The [showSnackBarCallback] is a function that displays the snackbar,
   /// [logMessage] is a description of the error for logging purposes,
   /// [error] is the error object, and [userMessage] is the message to be displayed in the snackbar.
-  void _handleTransactionError(Function(String) showSnackBarCallback,
+  void handleTransactionError(Function(String) showSnackBarCallback,
       String logMessage, Object error, String userMessage) {
-    _logError(logMessage, error);
-    showSnackBar(showSnackBarCallback, userMessage);
+    logError(logMessage, error);
+    _showSnackBar(showSnackBarCallback, userMessage);
   }
 
   /// Performs a transaction operation and handles success and error cases.
@@ -71,15 +74,24 @@ class TransactionProvider with ChangeNotifier {
     String logMessage,
   ) async {
     try {
-      await operation();
-      notifyAndShowSnackBar(showSnackBarCallback, successMessage);
+      await _executeOperation(operation, showSnackBarCallback, successMessage);
     } catch (error) {
-      _handleTransactionError(
+      handleTransactionError(
           showSnackBarCallback,
-          '$logMessage: {error.runtimeType}',
+          '$logMessage: ${error.runtimeType}',
           error,
           'Unexpected error occurred.');
     }
+  }
+
+  Future<void> _executeOperation(
+    Future<void> Function() operation,
+    Function(String) showSnackBarCallback,
+    String successMessage,
+  ) async {
+    await operation();
+    _notifyAndShowSnackBar(showSnackBarCallback, successMessage);
+    _synchronizeCollections();
   }
 
   /// Adds a new transaction and provides user feedback.
@@ -96,8 +108,9 @@ class TransactionProvider with ChangeNotifier {
       () async {
         await _databaseService.insertTransaction(transaction);
         _transactions.add(transaction);
-        _synchronizeCollections();
-        logger.i('addTransaction: Added transaction with ID ${transaction.id}');
+        _transactionMap[transaction.id] = transaction;
+        _logger
+            .i('addTransaction: Added transaction with ID ${transaction.id}');
       },
       showSnackBarCallback,
       'Transaction added successfully!',
@@ -115,20 +128,25 @@ class TransactionProvider with ChangeNotifier {
   /// the fetching process.
   Future<List<Transaction>> fetchTransactions() async {
     try {
-      logger.i('Fetching transactions from database.');
-      final fetchedTransactions = await _databaseService.getTransactions();
+      _logger.i('Fetching transactions from database.');
+      final fetchedTransactions = await _databaseService
+          .getTransactions()
+          .timeout(const Duration(seconds: 3));
       _transactions
         ..clear()
         ..addAll(fetchedTransactions);
       _synchronizeCollections();
-      logger.i(
+      _logger.i(
           'fetchTransactions: Fetched ${_transactions.length} transactions.');
       notifyListeners();
+    } on TimeoutException catch (e) {
+      logError('fetchTransactions: Timeout fetching transactions', e);
+      rethrow;
     } on DatabaseException catch (e) {
-      _logError('fetchTransactions: Error fetching transactions', e);
+      logError('fetchTransactions: Error fetching transactions', e);
       rethrow;
     } catch (error) {
-      _logError(
+      logError(
           'fetchTransactions:Unexpected error fetching transactions', error);
       rethrow;
     }
@@ -149,14 +167,14 @@ class TransactionProvider with ChangeNotifier {
       () async {
         final transactionToDelete = _transactionMap[id];
         if (transactionToDelete == null) {
-          logger.w('deleteTransaction: Transaction with id $id not found.');
-          showSnackBar(showSnackBarCallback, 'Transaction not found.');
+          _logger.w('deleteTransaction: Transaction with id $id not found.');
+          notifyListeners();
+          showSnackBarCallback('Transaction not found.');
           return;
         }
         _transactions.remove(transactionToDelete);
-        _synchronizeCollections();
         await _databaseService.deleteTransaction(id);
-        logger.i('deleteTransaction: Deleted transaction with ID $id');
+        _logger.i('deleteTransaction: Deleted transaction with ID $id');
       },
       showSnackBarCallback,
       'Transaction deleted successfully!',
@@ -183,9 +201,9 @@ class TransactionProvider with ChangeNotifier {
               'Transaction with id ${updatedTransaction.id} not found.');
         }
         _transactions[index] = updatedTransaction;
-        _synchronizeCollections();
+        notifyListeners();
         await _databaseService.updateTransaction(updatedTransaction);
-        logger.i(
+        _logger.i(
             'updateTransaction: Updated transaction with ID ${updatedTransaction.id}');
       },
       showSnackBarCallback,
@@ -206,20 +224,61 @@ class TransactionProvider with ChangeNotifier {
         .fold(0.0, (previousValue, element) => previousValue + element.amount);
   }
 
+  /// Calculates the total income from all transactions.
+  ///
+  /// Returns the total income as a double.
+  ///
+  /// This method calculates the total income by summing up the amounts of all
+  /// transactions that have a positive amount.
+  double get totalIncome {
+    return _transactions
+        .where((transaction) => transaction.amount > 0)
+        .fold(0.0, (sum, tx) => sum + tx.amount);
+  }
+
+  /// Calculates the current balance from all transactions.
+  ///
+  /// Returns the current balance as a double.
+  ///
+  /// This method calculates the current balance by summing up the amounts of all
+  /// transactions.
+  double get currentBalance {
+    return _transactions.fold(0.0, (sum, tx) => sum + tx.amount);
+  }
+
+  /// Calculates the expenses for the given period.
+  ///
+  /// Returns the expenses for the given period as a double.
+  ///
+  /// This method calculates the expenses by summing up the amounts of all
+  /// transactions that have a negative amount and occur within the given period.
+  double getExpensesForPeriod(DateTime start, DateTime end) {
+    return _transactions
+        .where((tx) => tx.date.isAfter(start) && tx.date.isBefore(end))
+        .where((tx) => tx.amount < 0)
+        .fold(0.0, (sum, tx) => sum + tx.amount);
+  }
+
   /// Notifies listeners and shows a snackbar with the given [message].
   ///
   /// The [showSnackBarCallback] is a function that displays the snackbar,
   /// and [message] is the text to be displayed in the snackbar.
   ///
-  void notifyAndShowSnackBar(
+  void _notifyAndShowSnackBar(
       Function(String) showSnackBarCallback, String message) {
     notifyListeners();
     showSnackBarCallback(message);
   }
 
+  /// Synchronizes the transaction map with the current list of transactions.
+  ///
+  /// This method clears the existing transaction map and repopulates it
+  /// with the current transactions from the list, ensuring that the map
+  /// is always up-to-date with the latest transactions.
   void _synchronizeCollections() {
-    for (var transaction in _transactions) {
-      _transactionMap[transaction.id] = transaction;
-    }
+    _transactionMap
+      ..clear()
+      ..addEntries(_transactions
+          .map((transaction) => MapEntry(transaction.id, transaction)));
   }
 }
