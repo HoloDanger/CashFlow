@@ -2,10 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:logger/logger.dart';
 import 'package:provider/provider.dart';
 import 'package:money_tracker/providers/transaction_provider.dart';
-import 'package:money_tracker/screens/budget_overview_screen.dart';
-import 'add_transaction_screen.dart';
-import 'settings_screen.dart';
-import 'package:money_tracker/services/recurring_transaction_service.dart';
+import 'package:money_tracker/screens/add_transaction_screen.dart';
+import 'package:money_tracker/widgets/side_navigation.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -16,26 +14,14 @@ class HomeScreen extends StatefulWidget {
 
 class HomeScreenState extends State<HomeScreen> {
   final Logger logger = Logger();
-  int _selectedIndex = 0; // For bottom navigation
-  bool _isDrawerOpen = false;
-
-  // Constants
-  static const double drawerWidth = 80.0;
-  static const double iconSize = 28.0;
-  static const double navItemPadding = 16.0;
+  final GlobalKey<SideNavigationState> _sideNavKey =
+      GlobalKey<SideNavigationState>();
+  final int _selectedIndex = 0; // Home index
 
   @override
   void initState() {
     super.initState();
     _fetchTransactions();
-  }
-
-  @override
-  void dispose() {
-    // Dispose of recurring transaction timers
-    Provider.of<RecurringTransactionService>(context, listen: false)
-        .disposeTimers();
-    super.dispose();
   }
 
   /// Fetches transactions from the provider.
@@ -50,28 +36,6 @@ class HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  /// Handles navigation item taps.
-  void _onNavItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-      _isDrawerOpen = false;
-    });
-    switch (index) {
-      case 1:
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => const BudgetOverviewScreen()),
-        );
-        break;
-      case 3:
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => const SettingsScreen()),
-        );
-        break;
-    }
-  }
-
   /// Shows a snackbar with the given message.
   void _showSnackBar(String message) {
     ScaffoldMessenger.of(context)
@@ -80,142 +44,63 @@ class HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
+    return SideNavigation(
+      key: _sideNavKey,
+      selectedIndex: _selectedIndex,
+      child: Scaffold(
+        appBar: AppBar(
+          leading: IconButton(
             icon: const Icon(Icons.menu, color: Colors.white),
             onPressed: () {
-              setState(() {
-                _isDrawerOpen = !_isDrawerOpen;
-              });
-            }),
-        title: Text(
-          'CASHFLOW',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-            fontFamily: 'Fredoka',
-            fontSize: 24,
-            fontVariations: <FontVariation>[FontVariation('wght', 700)],
-            shadows: <Shadow>[
-              Shadow(
-                offset: Offset(-2.0, 2.0), // Position of the shadow
-                blurRadius: 4.0, // Blur radius
-                color:
-                    Colors.black.withOpacity(0.3), // Shadow color and opacity
-              ),
-            ],
+              _sideNavKey.currentState?.toggleDrawer();
+            },
           ),
-        ),
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFF4CAD73), Color(0xFFAABD36)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-        ),
-        iconTheme: const IconThemeData(color: Colors.white),
-      ),
-      body: Stack(
-        children: [
-          // Main Content
-          _buildContent(_selectedIndex),
-
-          // Animated Side Navigation
-          AnimatedPositioned(
-            duration: const Duration(milliseconds: 200),
-            left: _isDrawerOpen ? 0 : -drawerWidth,
-            top: 0,
-            bottom: 0,
-            child: Container(
-              width: drawerWidth,
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Color(0xFF4CAD73),
-                    Color(0xFFAABD36),
-                  ],
+          title: Text(
+            'CASHFLOW',
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontFamily: 'Fredoka',
+              fontSize: 24,
+              fontVariations: const <FontVariation>[FontVariation('wght', 700)],
+              shadows: const <Shadow>[
+                Shadow(
+                  offset: Offset(-2.0, 2.0),
+                  blurRadius: 4.0,
+                  color: Colors.black54,
                 ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black26,
-                    blurRadius: 4,
-                    offset: Offset(2, 0),
-                  ),
-                ],
-              ),
-              child: Column(
-                children: [
-                  const SizedBox(height: 20),
-                  _buildNavItem(Icons.home, 0, 'Home'),
-                  _buildNavItem(Icons.money, 1, 'Budget'),
-                  _buildNavItem(Icons.show_chart, 2, 'Reports'),
-                  _buildNavItem(Icons.settings, 3, 'Settings'),
-                ],
+              ],
+            ),
+          ),
+          flexibleSpace: Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Color(0xFF4CAD73), Color(0xFFAABD36)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
             ),
           ),
-
-          // Overlay when drawer is open
-          if (_isDrawerOpen)
-            Positioned.fill(
-              child: GestureDetector(
-                onTap: () {
-                  setState(() {
-                    _isDrawerOpen = false;
-                  });
-                },
-                child: Container(),
-              ),
-            ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: Color(0xFF4CAF50),
-        child: const Icon(Icons.add),
-        onPressed: () {
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (context) => const AddTransactionScreen(),
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  /// Builds a navigation item.
-  Widget _buildNavItem(IconData icon, int index, String label) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: navItemPadding),
-      child: IconButton(
-        icon: Icon(
-          icon,
-          color: _selectedIndex == index ? Colors.white : Colors.white70,
-          size: iconSize,
+          iconTheme: const IconThemeData(color: Colors.white),
         ),
-        onPressed: () => _onNavItemTapped(index),
+        body: _buildContent(),
+        floatingActionButton: FloatingActionButton(
+          backgroundColor: const Color(0xFF4CAF50),
+          child: const Icon(Icons.add),
+          onPressed: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => const AddTransactionScreen(),
+              ),
+            );
+          },
+        ),
       ),
     );
   }
 
-  /// Builds the content based on the selected index.
-  Widget _buildContent(int index) {
-    return switch (index) {
-      0 => buildTransactionList(context),
-      1 => const BudgetOverviewScreen(),
-      2 => const Center(child: Text("Reports Page")),
-      3 => const SettingsScreen(),
-      _ => const Center(child: Text("Select an option")),
-    };
-  }
-
-  /// Builds the transaction list.
-  Widget buildTransactionList(BuildContext context) {
+  /// Builds the main content of the HomeScreen.
+  Widget _buildContent() {
     return Consumer<TransactionProvider>(
       builder: (ctx, transactionProvider, child) {
         if (transactionProvider.transactions.isEmpty) {

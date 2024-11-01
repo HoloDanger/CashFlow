@@ -6,7 +6,9 @@ import 'package:money_tracker/models/transaction.dart';
 import 'package:money_tracker/providers/budget_provider.dart';
 import 'package:money_tracker/providers/category_provider.dart';
 import 'package:money_tracker/providers/transaction_provider.dart';
+import 'package:money_tracker/screens/budget_overview_screen.dart';
 import 'package:money_tracker/screens/home_screen.dart';
+import 'package:money_tracker/screens/settings_screen.dart';
 import 'package:money_tracker/services/database_service.dart';
 import 'package:money_tracker/services/recurring_transaction_service.dart';
 import 'package:provider/provider.dart';
@@ -68,7 +70,8 @@ class MyApp extends StatelessWidget {
 
         // Other ChangeNotifierProviders
         ChangeNotifierProvider<TransactionProvider>(
-          create: (_) => TransactionProvider(databaseService: databaseService),
+          create: (_) =>
+              TransactionProvider(databaseService: databaseService),
         ),
         ChangeNotifierProvider<CategoryProvider>(
           create: (_) => CategoryProvider(),
@@ -106,7 +109,13 @@ class MyApp extends StatelessWidget {
             textTheme: ButtonTextTheme.primary,
           ),
         ),
-        home: const HomeScreen(),
+        initialRoute: '/home',
+        routes: {
+          '/home': (context) => const HomeScreen(),
+          '/budget': (context) => const BudgetOverviewScreen(),
+          '/settings': (context) => const SettingsScreen(),
+          // Add other routes here if needed
+        },
       ),
     );
   }

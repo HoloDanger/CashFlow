@@ -145,9 +145,9 @@ class AddTransactionScreenState extends State<AddTransactionScreen> {
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
-          icon: const Icon(Icons.menu, color: Colors.white),
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () {
-            // Handle drawer open if applicable
+            Navigator.of(context).pop();
           },
         ),
         title: Text(
