@@ -32,7 +32,8 @@ class Transaction {
     this.isRecurring = false,
     this.recurrenceFrequency,
     required this.nextOccurrence,
-  });
+  }) : assert(!isRecurring || recurrenceFrequency != null,
+            'Recurring transactions must have a recurrence frequency.');
 
   // Factory method to create a Transaction from a map
   factory Transaction.fromMap(Map<String, dynamic> map) {

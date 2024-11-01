@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:money_tracker/utils/custom_exceptions.dart';
 import 'package:provider/provider.dart';
 import 'package:money_tracker/models/recurrence_frequency.dart';
 import 'package:money_tracker/models/transaction.dart';
@@ -23,8 +24,13 @@ class AddTransactionScreenState extends State<AddTransactionScreen> {
   DateTime? _selectedDate;
   String _recurrenceFrequency = 'None';
   final Logger logger = Logger();
-  final RecurringTransactionService _recurringTransactionService =
-      RecurringTransactionService();
+
+  @override
+  void dispose() {
+    _amountController.dispose();
+    _dateController.dispose();
+    super.dispose();
+  }
 
   void _showSnackBar(String message) {
     ScaffoldMessenger.of(context)
@@ -47,7 +53,7 @@ class AddTransactionScreenState extends State<AddTransactionScreen> {
     }
   }
 
-  void _submitData() {
+  void _submitData() async {
     if (!_formKey.currentState!.validate()) return;
 
     final enteredAmount = double.parse(_amountController.text);
@@ -55,9 +61,7 @@ class AddTransactionScreenState extends State<AddTransactionScreen> {
     final enteredDate = _selectedDate ?? DateTime.now();
 
     if (enteredCategory == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a category')),
-      );
+      _showSnackBar('Please select a category');
       return;
     }
 
@@ -70,9 +74,7 @@ class AddTransactionScreenState extends State<AddTransactionScreen> {
               _recurrenceFrequency.toLowerCase(),
         );
       } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Invalid recurrence frequency')),
-        );
+        _showSnackBar('Invalid recurrence frequency');
         return;
       }
     }
@@ -80,26 +82,60 @@ class AddTransactionScreenState extends State<AddTransactionScreen> {
     final newTransaction = Transaction(
       id: const Uuid().v4(),
       amount: enteredAmount,
-      formattedAmount: '\$${enteredAmount.toStringAsFixed(2)}',
+      formattedAmount: '₱${enteredAmount.toStringAsFixed(2)}',
       category: enteredCategory,
       date: enteredDate,
       formattedDate: '${enteredDate.toLocal()}'.split(' ')[0],
       isRecurring: recurrenceFrequency != null,
       recurrenceFrequency: recurrenceFrequency,
-      nextOccurrence: enteredDate,
+      nextOccurrence: recurrenceFrequency != null
+          ? calculateNextOccurrence(enteredDate, recurrenceFrequency)
+          : enteredDate,
     );
 
-    if (newTransaction.isRecurring &&
-        newTransaction.recurrenceFrequency != null) {
-      _recurringTransactionService
-          .scheduleRecurringTransactions([newTransaction]);
-    } else {
-      Provider.of<TransactionProvider>(context, listen: false)
-          .addTransaction(newTransaction, _showSnackBar);
-      logger.i('Submitted transaction: $newTransaction');
-    }
+    final transactionProvider =
+        Provider.of<TransactionProvider>(context, listen: false);
+    final recurringTransactionService =
+        Provider.of<RecurringTransactionService>(context, listen: false);
 
-    Navigator.of(context).pop();
+    try {
+      await transactionProvider.addTransaction(newTransaction, _showSnackBar);
+      logger.i('Submitted transaction: $newTransaction');
+
+      if (newTransaction.isRecurring &&
+          newTransaction.recurrenceFrequency != null) {
+        recurringTransactionService
+            .scheduleRecurringTransaction(newTransaction);
+        _showSnackBar('Recurring transaction added successfully!');
+      }
+      if (mounted) {
+        Navigator.of(context).pop();
+      }
+    } on TransactionNotFoundException catch (e) {
+      logger.e('Transaction not found exception: ${e.message}');
+      _showSnackBar(e.message);
+    } catch (error) {
+      logger.e('Error adding transaction: $error');
+      _showSnackBar('Failed to add transaction.');
+    }
+  }
+
+  DateTime calculateNextOccurrence(
+      DateTime date, RecurrenceFrequency frequency) {
+    switch (frequency) {
+      case RecurrenceFrequency.daily:
+        return date.add(const Duration(days: 1));
+      case RecurrenceFrequency.weekly:
+        return date.add(const Duration(days: 7));
+      case RecurrenceFrequency.monthly:
+        final int year = date.month == 12 ? date.year + 1 : date.year;
+        final int month = date.month == 12 ? 1 : date.month + 1;
+        final int day =
+            date.day > 28 ? 28 : date.day; // To handle shorter months
+        return DateTime(year, month, day);
+      default:
+        return date;
+    }
   }
 
   @override
@@ -111,7 +147,7 @@ class AddTransactionScreenState extends State<AddTransactionScreen> {
         leading: IconButton(
           icon: const Icon(Icons.menu, color: Colors.white),
           onPressed: () {
-            // Handle drawer open
+            // Handle drawer open if applicable
           },
         ),
         title: Text(
@@ -150,6 +186,7 @@ class AddTransactionScreenState extends State<AddTransactionScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                // Transaction Amount Field
                 TextFormField(
                   controller: _amountController,
                   decoration: const InputDecoration(
@@ -171,10 +208,15 @@ class AddTransactionScreenState extends State<AddTransactionScreen> {
                     if (amount == null) {
                       return 'Invalid number format.';
                     }
+                    if (amount <= 0) {
+                      return 'Amount must be greater than zero.';
+                    }
                     return null;
                   },
                 ),
                 const SizedBox(height: 16),
+
+                // Transaction Category Dropdown
                 DropdownButtonFormField<String>(
                   value: _selectedCategory,
                   decoration: const InputDecoration(
@@ -208,6 +250,8 @@ class AddTransactionScreenState extends State<AddTransactionScreen> {
                   },
                 ),
                 const SizedBox(height: 16),
+
+                // Transaction Date Picker
                 TextFormField(
                   controller: _dateController,
                   decoration: const InputDecoration(
@@ -226,10 +270,20 @@ class AddTransactionScreenState extends State<AddTransactionScreen> {
                     if (value == null || value.isEmpty) {
                       return 'Date is required.';
                     }
+                    final selectedDate = DateTime.tryParse(value);
+                    if (selectedDate == null) {
+                      return 'Invalid date format.';
+                    }
+                    if (selectedDate.isAfter(
+                        DateTime.now().add(const Duration(days: 365)))) {
+                      return 'Date cannot be more than a year in the future.';
+                    }
                     return null;
                   },
                 ),
                 const SizedBox(height: 16),
+
+                // Recurrence Frequency Dropdown
                 DropdownButtonFormField<String>(
                   value: _recurrenceFrequency,
                   decoration: const InputDecoration(
@@ -287,12 +341,12 @@ class AddTransactionScreenState extends State<AddTransactionScreen> {
                   },
                 ),
                 const SizedBox(height: 20),
+
+                // Submit Button
                 ElevatedButton(
-                  onPressed: _formKey.currentState?.validate() == true
-                      ? _submitData
-                      : null,
+                  onPressed: _submitData,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(0xFF4CAF50),
+                    backgroundColor: const Color(0xFF4CAF50),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),

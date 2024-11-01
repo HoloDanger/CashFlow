@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:logger/logger.dart';
+import 'package:money_tracker/models/transaction.dart';
 import 'package:money_tracker/providers/budget_provider.dart';
 import 'package:money_tracker/providers/category_provider.dart';
 import 'package:money_tracker/providers/transaction_provider.dart';
@@ -23,7 +24,6 @@ void main() {
 
     // Initialize services or perform async operations here
     final databaseService = DatabaseService();
-    final recurringTransactionService = RecurringTransactionService();
 
     // Set up a custom error handler for Flutter framework errors
     FlutterError.onError = (FlutterErrorDetails details) {
@@ -35,11 +35,13 @@ void main() {
     };
 
     // Fetch existing transactions from the database
-    databaseService.getTransactions().then((transactions) {
-      // Schedule recurring transactions
-      recurringTransactionService.scheduleRecurringTransactions(transactions);
-      runApp(MyApp(databaseService: databaseService));
-    });
+    List<Transaction> transactions = await databaseService.getTransactions();
+
+    // Run the app
+    runApp(MyApp(
+      databaseService: databaseService,
+      initialTransactions: transactions,
+    ));
   }, (error, stackTrace) {
     logger.e('Uncaught asynchronous error: $error\n$stackTrace');
     // Optionally, send the error to a monitoring service
@@ -49,21 +51,44 @@ void main() {
 
 class MyApp extends StatelessWidget {
   final DatabaseService databaseService;
+  final List<Transaction> initialTransactions;
 
-  const MyApp({super.key, required this.databaseService});
+  const MyApp({
+    super.key,
+    required this.databaseService,
+    required this.initialTransactions,
+  });
 
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(
+        // Provide DatabaseService first
+        Provider<DatabaseService>.value(value: databaseService),
+
+        // Other ChangeNotifierProviders
+        ChangeNotifierProvider<TransactionProvider>(
           create: (_) => TransactionProvider(databaseService: databaseService),
         ),
-        ChangeNotifierProvider(
+        ChangeNotifierProvider<CategoryProvider>(
           create: (_) => CategoryProvider(),
         ),
-        ChangeNotifierProvider(
+        ChangeNotifierProvider<BudgetProvider>(
           create: (_) => BudgetProvider(),
+        ),
+
+        // ProxyProvider2 for RecurringTransactionService
+        ProxyProvider2<TransactionProvider, DatabaseService,
+            RecurringTransactionService>(
+          update: (_, transactionProvider, dbService, __) =>
+              RecurringTransactionService(
+            transactionProvider: transactionProvider,
+            databaseService: dbService,
+          )..scheduleRecurringTransactions(
+                  transactionProvider.transactions
+                      .where((t) => t.isRecurring)
+                      .toList(),
+                ),
         ),
       ],
       child: MaterialApp(
@@ -77,7 +102,9 @@ class MyApp extends StatelessWidget {
             bodyLarge: TextStyle(fontSize: 14.0),
           ),
           buttonTheme: ButtonThemeData(
-              buttonColor: Colors.green, textTheme: ButtonTextTheme.primary),
+            buttonColor: Colors.green,
+            textTheme: ButtonTextTheme.primary,
+          ),
         ),
         home: const HomeScreen(),
       ),

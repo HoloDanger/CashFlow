@@ -2,14 +2,22 @@ import 'dart:async';
 import 'package:logger/logger.dart';
 import 'package:money_tracker/models/recurrence_frequency.dart';
 import 'package:money_tracker/models/transaction.dart';
+import 'package:money_tracker/providers/transaction_provider.dart';
 import 'package:money_tracker/services/database_service.dart';
+import 'package:uuid/uuid.dart';
 
-/// A service class for managing recurring transactions.
 class RecurringTransactionService {
-  final DatabaseService databaseService = DatabaseService();
+  final TransactionProvider transactionProvider;
+  final DatabaseService databaseService;
   final Logger logger = Logger();
+  final List<Timer> _timers = [];
 
-  /// Schedules recurring transaction.
+  RecurringTransactionService({
+    required this.transactionProvider,
+    required this.databaseService,
+  });
+
+  /// Schedules recurring transactions based on existing transactions.
   void scheduleRecurringTransactions(List<Transaction> transactions) {
     for (var transaction in transactions) {
       if (transaction.isRecurring && transaction.recurrenceFrequency != null) {
@@ -18,10 +26,19 @@ class RecurringTransactionService {
     }
   }
 
-  /// Schedules a single recurring transaction
+  /// Schedules a single recurring transaction.
+  void scheduleRecurringTransaction(Transaction transaction) {
+    if (!transaction.isRecurring || transaction.recurrenceFrequency == null) {
+      return;
+    }
+
+    _scheduleTransaction(transaction);
+    logger.i('Scheduled new recurring transaction with ID: ${transaction.id}');
+  }
+
   void _scheduleTransaction(Transaction transaction) {
     Duration interval;
-    switch (transaction.recurrenceFrequency) {
+    switch (transaction.recurrenceFrequency!) {
       case RecurrenceFrequency.daily:
         interval = const Duration(days: 1);
         break;
@@ -29,98 +46,77 @@ class RecurringTransactionService {
         interval = const Duration(days: 7);
         break;
       case RecurrenceFrequency.monthly:
-        interval = const Duration(days: 30); // Simplified for example purposes
+        // Approximation for monthly interval
+        interval = const Duration(days: 30);
         break;
       default:
+        logger.w(
+            'Unknown recurrence frequency for transaction ID: ${transaction.id}');
         return;
     }
 
     try {
-      Timer.periodic(interval, (timer) {
-        // Logic to create a new transaction based on the recurring transaction
-        createTransaction(
-          id: generateNewId(), // Implement this function to generate a unique ID
-          amount: transaction.amount,
-          category: transaction.category,
-          date: DateTime.now(),
-          formattedDate: formatDate(
-              DateTime.now()), // Implement this function to format the date
-          formattedAmount: formatAmount(transaction
-              .amount), // Implement this function to format the amount
-          isRecurring: transaction.isRecurring,
-          recurrenceFrequency: transaction.recurrenceFrequency,
-          nextOccurrence: calculateNextOccurrence(
-              DateTime.now(), transaction.recurrenceFrequency!),
-        );
+      Timer timer = Timer.periodic(interval, (timer) {
+        logger.i(
+            'Creating recurring transaction for category: ${transaction.category}');
+        createTransaction(transaction);
       });
+      _timers.add(timer);
     } catch (e) {
-      // Handle scheduling error
       logger.e('Error scheduling transaction: $e');
     }
   }
 
-  /// Creates a new transaction.
-  void createTransaction({
-    required String id,
-    required double amount,
-    required String category,
-    required DateTime date,
-    required String formattedDate,
-    required String formattedAmount,
-    bool isRecurring = false,
-    RecurrenceFrequency? recurrenceFrequency,
-    required DateTime nextOccurrence,
-  }) {
-    final transaction = Transaction(
-      id: id,
-      amount: amount,
-      category: category,
-      date: date,
-      formattedDate: formattedDate,
-      formattedAmount: formattedAmount,
-      isRecurring: isRecurring,
-      recurrenceFrequency: recurrenceFrequency,
-      nextOccurrence: nextOccurrence,
+  void createTransaction(Transaction originalTransaction) {
+    if (originalTransaction.recurrenceFrequency == null) {
+      throw ArgumentError(
+          'Recurrence frequency cannot be null for recurring transactions');
+    }
+
+    final newTransaction = Transaction(
+      id: const Uuid().v4(),
+      amount: originalTransaction.amount,
+      formattedAmount: originalTransaction.formattedAmount,
+      category: originalTransaction.category,
+      date: DateTime.now(),
+      formattedDate: '${DateTime.now()}'.split(' ')[0],
+      isRecurring: originalTransaction.isRecurring,
+      recurrenceFrequency: originalTransaction.recurrenceFrequency!,
+      nextOccurrence: calculateNextOccurrence(
+          DateTime.now(), originalTransaction.recurrenceFrequency!),
     );
 
     try {
-      // Save the transaction to the database or state
-      databaseService.insertTransaction(transaction);
+      transactionProvider.addTransaction(newTransaction, (message) {
+        logger.i('Recurring Transaction Added: $message');
+      });
     } catch (e) {
-      // Handle database error
-      logger.e('Error inserting transaction: $e');
+      logger.e('Error inserting recurring transaction: $e');
     }
   }
 
-  String generateNewId() {
-    // Implement a method to generate a unique ID for each transaction
-    return DateTime.now().millisecondsSinceEpoch.toString();
-  }
-
-  /// Generates a unique ID for each transaction.
-  String formatDate(DateTime date) {
-    // Implement a method to format the date as a string
-    return date.toIso8601String();
-  }
-
-  /// Formats the amount as a string.
-  String formatAmount(double amount) {
-    // Implement a method to format the amount as a string
-    return amount.toStringAsFixed(2);
-  }
-
-  /// Calculates the next occurrence date based on the recurrence frequency.
   DateTime calculateNextOccurrence(
-      DateTime date, RecurrenceFrequency recurrenceFrequency) {
-    switch (recurrenceFrequency) {
+      DateTime date, RecurrenceFrequency frequency) {
+    switch (frequency) {
       case RecurrenceFrequency.daily:
         return date.add(const Duration(days: 1));
       case RecurrenceFrequency.weekly:
         return date.add(const Duration(days: 7));
       case RecurrenceFrequency.monthly:
-        return DateTime(date.year, date.month + 1, date.day);
+        final int year = date.month == 12 ? date.year + 1 : date.year;
+        final int month = date.month == 12 ? 1 : date.month + 1;
+        final int day =
+            date.day > 28 ? 28 : date.day; // To handle shorter months
+        return DateTime(year, month, day);
       default:
         return date;
+    }
+  }
+
+  /// Call this method to dispose all timers when they are no longer needed.
+  void disposeTimers() {
+    for (var timer in _timers) {
+      timer.cancel();
     }
   }
 }

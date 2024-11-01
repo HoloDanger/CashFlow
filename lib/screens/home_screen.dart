@@ -1,15 +1,11 @@
-// Flutter imports
 import 'package:flutter/material.dart';
-
-// Third-party packages
 import 'package:logger/logger.dart';
 import 'package:provider/provider.dart';
-
-// Local imports
 import 'package:money_tracker/providers/transaction_provider.dart';
 import 'package:money_tracker/screens/budget_overview_screen.dart';
 import 'add_transaction_screen.dart';
 import 'settings_screen.dart';
+import 'package:money_tracker/services/recurring_transaction_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -32,6 +28,14 @@ class HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _fetchTransactions();
+  }
+
+  @override
+  void dispose() {
+    // Dispose of recurring transaction timers
+    Provider.of<RecurringTransactionService>(context, listen: false)
+        .disposeTimers();
+    super.dispose();
   }
 
   /// Fetches transactions from the provider.
@@ -211,7 +215,6 @@ class HomeScreenState extends State<HomeScreen> {
   }
 
   /// Builds the transaction list.
-  // After: Using Consumer<TransactionProvider>
   Widget buildTransactionList(BuildContext context) {
     return Consumer<TransactionProvider>(
       builder: (ctx, transactionProvider, child) {
